@@ -186,7 +186,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="eyebrow">Time at work</div>
     <div class="brand">Hour<span>s</span></div>
   </div>
-  <div class="ver">v2.1<br><span id="storeState"></span></div>
+  <div class="ver">v2.2<br><span id="storeState"></span></div>
 </header>
 
 <!-- ══════════ TODAY ══════════ -->
@@ -285,7 +285,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <button class="btn wide" id="showRules">The rules behind the checks</button>
     <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
   </div>
-  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.1 · works offline</p>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.2 · works offline</p>
 </section>
 
 <nav class="tabs"><div class="in">
@@ -806,8 +806,10 @@ async function sbAuth(body){
   const r=await fetch(SY.url+"/auth/v1/token?grant_type="+body.grant,
     {method:"POST",headers:{apikey:SY.key,"Content-Type":"application/json"},
      body:JSON.stringify(body.payload)});
-  const j=await r.json();
-  if(!r.ok)throw new Error(j.error_description||j.msg||j.message||"Sign-in failed");
+  const txt=await r.text();
+  let j={};try{j=txt?JSON.parse(txt):{}}catch(e){}
+  if(!r.ok)throw new Error(j.error_description||j.msg||j.message||("Sign-in failed ("+r.status+")"));
+  if(!j.access_token)throw new Error("No token returned — check the Project URL");
   AU={access_token:j.access_token,refresh_token:j.refresh_token,uid:j.user&&j.user.id};
   saveAuth();return AU}
 async function signIn(email,password){
@@ -821,8 +823,12 @@ async function sbRest(path,opts,retry){
     apikey:SY.key,Authorization:"Bearer "+AU.access_token,
     "Content-Type":"application/json",...(opts&&opts.headers||{})}});
   if(r.status===401&&!retry){await refresh();return sbRest(path,opts,true)}
-  if(!r.ok)throw new Error("Supabase "+r.status+" "+(await r.text()).slice(0,120));
-  return r.status===204?null:r.json()}
+  /* a successful upsert with return=minimal comes back 201 with no body at
+     all, so read as text and only parse when there is something to parse */
+  const txt=await r.text();
+  if(!r.ok)throw new Error("Supabase "+r.status+" "+txt.slice(0,140));
+  if(!txt)return null;
+  try{return JSON.parse(txt)}catch(e){return null}}
 
 async function pull(){
   const rows=await sbRest("hours_state?select=state&limit=1",{method:"GET"});
