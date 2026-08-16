@@ -104,6 +104,7 @@ header.top{padding:calc(14px + env(safe-area-inset-top)) 14px 10px;max-width:520
 .wbar{width:100%;border-radius:2px 2px 0 0;background:var(--slab3);min-height:3px;transition:height .5s ease}
 .wbar.done{background:var(--verdigris)}.wbar.over{background:var(--molten)}
 .wbar.today{outline:1px solid rgba(233,229,219,.35);outline-offset:1px}
+.planmark{position:absolute;left:-2px;right:-2px;height:2px;background:var(--bone);opacity:.55;border-radius:2px}
 .wlbl{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;font-family:var(--semi);font-size:10.5px;
   letter-spacing:.1em;text-transform:uppercase;color:var(--dimmer);text-align:center}
 .wlbl b{display:block;color:var(--dim);font-family:var(--mono);font-size:10px;font-weight:400;letter-spacing:0}
@@ -186,7 +187,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="eyebrow">Time at work</div>
     <div class="brand">Hour<span>s</span></div>
   </div>
-  <div class="ver">v2.2<br><span id="storeState"></span></div>
+  <div class="ver">v2.3<br><span id="storeState"></span></div>
 </header>
 
 <!-- ══════════ TODAY ══════════ -->
@@ -216,6 +217,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
       <div class="stat"><b id="stPace">level</b><span>Vs pace</span></div>
       <div class="stat"><b id="stBank">0:00</b><span>Running</span></div>
     </div>
+    <div id="planFlag"></div>
     <div id="wkFlag"></div>
   </div>
 </section>
@@ -285,7 +287,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <button class="btn wide" id="showRules">The rules behind the checks</button>
     <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
   </div>
-  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.2 · works offline</p>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.3 · works offline</p>
 </section>
 
 <nav class="tabs"><div class="in">
@@ -308,7 +310,7 @@ document.getElementById("storeState").textContent=Store.ok?"":"session only";
 const KEY="hours.v2",OLD="shiftcard.v1";
 const DEF={v:2,settings:{target:8,usualStart:"09:00",usualEnd:"17:00",workDays:[1,2,3,4,5],weekStart:1,
   mealUnpaid:true,mealRem:true,mealChk:true,doneRem:true,longRem:true,vibrate:true,notif:false},
-  shifts:[],notes:{},offDays:{},audit:[],fired:{},ackBreak:{},netSeen:{}};
+  shifts:[],notes:{},offDays:{},audit:[],fired:{},ackBreak:{},netSeen:{},plan:{}};
 let S=load();
 function load(){
   let raw=Store.get(KEY),migrated=false;
@@ -362,6 +364,11 @@ function dayCached(k){if(_stamp!==key()){_cache.clear();_stamp=key()}
   return v}
 function expectedOn(k){return S.offDays[k]?0:
   (S.settings.workDays.includes(fromKey(k).getDay())?S.settings.target*HR:0)}
+/* What you mean to do on a given date. Absent a plan this is just your normal
+   day. The plan reshapes the week; it never changes what the week owes — that
+   stays expectedOn, which is what the running total is measured against. */
+function plannedOn(k){const p=S.plan[k];return p==null?expectedOn(k):Math.max(0,p)*HR}
+function isPlanned(k){return S.plan[k]!=null}
 function allKeys(){const s=new Set(S.shifts.map(x=>x.date));
   Object.keys(S.offDays).forEach(k=>s.add(k));Object.keys(S.notes).forEach(k=>s.add(k));
   return[...s].sort()}
@@ -374,9 +381,9 @@ function weekKeys(st){const o=[];for(let i=0;i<7;i++){const d=new Date(st);d.set
 /* s69ZD: a meal break is due once the work period passes four hours */
 function mealsDue(ms){const h=ms/HR;if(h<=4)return 0;return h>12?2:1}
 function logEdit(w){S.audit.unshift({ts:Date.now(),w});S.audit=S.audit.slice(0,60)}
-function finishBy(s,now){const owed=(S.settings.mealUnpaid&&mealsDue(S.settings.target*HR)>0
-  &&mealMs(s,now)<29*MIN)?30*MIN:0;
-  return s.in+S.settings.target*HR+mealMs(s,now)+owed}
+function finishBy(s,now,tgt){tgt=tgt||S.settings.target*HR;
+  const owed=(S.settings.mealUnpaid&&mealsDue(tgt)>0&&mealMs(s,now)<29*MIN)?30*MIN:0;
+  return s.in+tgt+mealMs(s,now)+owed}
 
 /* ════════ actions ════════ */
 function staleShift(){const t=key();return S.shifts.find(s=>!s.out&&s.date!==t)}
@@ -419,7 +426,8 @@ function drawNudges(){
     const n=live.find(x=>x.id===b.dataset.do);if(!n)return;
     live=live.filter(x=>x.id!==n.id);drawNudges();n.act[1]()})}
 function checkNudges(){
-  const k=key(),s=openShift(),tgt=S.settings.target*HR,w=dayWorked(k,Date.now());
+  const k=key(),s=openShift(),w=dayWorked(k,Date.now());
+  const tgt=plannedOn(k)||S.settings.target*HR;
   if(s&&!onBreak()&&S.settings.mealRem&&mealsDue(tgt)>0&&mealMs(s,Date.now())<29*MIN&&w>=tgt/2)
     once("meal",()=>pushNudge("info","Meal break",
       "Halfway. Thirty minutes unpaid — take it and you finish half an hour later, skip it and you finish on time. Your call.",true,
@@ -441,9 +449,11 @@ function checkNudges(){
 
 /* ════════ render ════════ */
 function render(){
-  const now=Date.now(),k=key(),s=openShift(),b=onBreak(),tgt=S.settings.target*HR,w=dayWorked(k,now);
+  const now=Date.now(),k=key(),s=openShift(),b=onBreak();
+  const plan=plannedOn(k),tgt=plan||S.settings.target*HR,w=dayWorked(k,now);
   document.getElementById("todayLbl").textContent=DOW[new Date().getDay()]+" "+
-    fromKey(k).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+    fromKey(k).toLocaleDateString(undefined,{day:"numeric",month:"short"})+
+    (isPlanned(k)?" · planned "+dur(plan,"hm"):"");
   document.getElementById("statusPill").innerHTML=b?`<span class="pill brk"><i></i>On break</span>`
     :s?`<span class="pill on"><i></i>On the clock</span>`:`<span class="pill off"><i></i>Off</span>`;
   const ro=document.getElementById("readout");
@@ -451,12 +461,13 @@ function render(){
   else{ro.className="readout"+(s?" on":"");ro.innerHTML=dur(w)+"<small>hrs</small>"}
   document.getElementById("readSub").textContent=
     b?"Back when you're ready · "+dur(w,"hm")+" worked"
-    :s?"In at "+clock(s.in)+" · full day at "+clock(finishBy(s,now))
+    :s?"In at "+clock(s.in)+" · "+(plan?"done at "+clock(finishBy(s,now,plan)):"nothing planned today")
     :w>0?"Done for today · "+dur(w,"hm"):"Not on the clock";
   const bar=document.getElementById("progBar");
   bar.style.width=Math.min(100,w/tgt*100)+"%";bar.className=w>=tgt?"done":"";
   document.getElementById("progL").textContent=dur(w,"hm");
-  document.getElementById("progR").textContent=w>=tgt?"+"+dur(w-tgt,"hm")+" over":dur(tgt-w,"hm")+" to go";
+  document.getElementById("progR").textContent=!plan?"+"+dur(w,"hm")+" all credit"
+    :w>=tgt?"+"+dur(w-tgt,"hm")+" over":dur(tgt-w,"hm")+" to go";
   const pb=document.getElementById("punchBtn");
   pb.textContent=s?"Clock out":"Clock in";pb.className="punch "+(s?"stop":"go");
   pb.onclick=s?clockOut:()=>clockIn();
@@ -480,7 +491,8 @@ function render(){
 }
 function tick(){
   const s=openShift(),b=onBreak();if(!s&&!b)return;
-  const now=Date.now(),k=key(),tgt=S.settings.target*HR,w=dayWorked(k,now);
+  const now=Date.now(),k=key();
+  const plan=plannedOn(k),tgt=plan||S.settings.target*HR,w=dayWorked(k,now);
   const ro=document.getElementById("readout");
   if(b){ro.innerHTML=dur(now-b.in)+"<small>break</small>";
     const e=document.getElementById("bEnd");if(e)e.textContent="Back from break — "+dur(now-b.in)}
@@ -488,7 +500,8 @@ function tick(){
   const bar=document.getElementById("progBar");
   bar.style.width=Math.min(100,w/tgt*100)+"%";bar.className=w>=tgt?"done":"";
   document.getElementById("progL").textContent=dur(w,"hm");
-  document.getElementById("progR").textContent=w>=tgt?"+"+dur(w-tgt,"hm")+" over":dur(tgt-w,"hm")+" to go";
+  document.getElementById("progR").textContent=!plan?"+"+dur(w,"hm")+" all credit"
+    :w>=tgt?"+"+dur(w-tgt,"hm")+" over":dur(tgt-w,"hm")+" to go";
   drawWeek();checkNudges()}
 
 let wkOff=0;
@@ -498,15 +511,19 @@ function drawWeek(){
   const ks=weekKeys(st),tgt=S.settings.target*HR;
   const w=ks.reduce((a,k)=>a+dayWorked(k,now),0);
   const owed=ks.reduce((a,k)=>a+expectedOn(k),0);
-  const byNow=ks.filter(k=>k<=t).reduce((a,k)=>a+expectedOn(k),0);
+  const byNow=ks.filter(k=>k<=t).reduce((a,k)=>a+plannedOn(k),0);
+  const planTot=ks.reduce((a,k)=>a+plannedOn(k),0);
+  const planned=ks.some(isPlanned);
   const left=owed-w,pace=w-byNow;
   const daysIn=ks.filter(k=>dayWorked(k,now)>0).length;
 
   document.getElementById("wkLbl").textContent=wkOff===0?"This week":wkOff===-1?"Last week":
     fromKey(ks[0]).toLocaleDateString(undefined,{day:"numeric",month:"short"});
   document.getElementById("wkNav").innerHTML=
-    `<button class="btn" style="min-height:30px;padding:0 11px" id="wP">‹</button>
+    `<button class="btn${planned?" go":""}" style="min-height:30px;padding:0 12px" id="wPlan">Plan</button>
+     <button class="btn" style="min-height:30px;padding:0 11px" id="wP">‹</button>
      <button class="btn" style="min-height:30px;padding:0 11px" id="wN" ${wkOff>=0?"disabled":""}>›</button>`;
+  document.getElementById("wPlan").onclick=()=>openPlan(ks);
   document.getElementById("wP").onclick=()=>{wkOff--;drawWeek()};
   document.getElementById("wN").onclick=()=>{if(wkOff<0){wkOff++;drawWeek()}};
 
@@ -522,9 +539,11 @@ function drawWeek(){
 
   const max=Math.max(tgt*1.3,...ks.map(k=>dayWorked(k,now)));
   document.getElementById("weekBars").innerHTML=ks.map(k=>{
-    const d=dayWorked(k,now),h=Math.max(d?4:2,d/max*100);
-    return `<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%">
-      <div class="wbar ${d>=tgt*1.02?"over":d>=tgt*.98?"done":""} ${k===t?"today":""}" style="height:${h}%"></div></div>`
+    const d=dayWorked(k,now),pl=plannedOn(k),hh=Math.max(d?4:2,d/max*100);
+    const goal=pl||tgt;
+    return `<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative">
+      ${isPlanned(k)?`<span class="planmark" style="bottom:${Math.min(100,pl/max*100)}%"></span>`:""}
+      <div class="wbar ${d>=goal*1.02&&goal>0?"over":d>=goal*.98&&goal>0?"done":""} ${k===t?"today":""}" style="height:${hh}%"></div></div>`
     }).join("")+`<div class="tgtline" style="bottom:${tgt/max*100}%"></div>`;
   document.getElementById("weekLbls").innerHTML=ks.map(k=>{
     const d=dayWorked(k,now);
@@ -540,6 +559,13 @@ function drawWeek(){
   const bk=bank(),sb=document.getElementById("stBank");
   sb.textContent=Math.abs(bk)<MIN?"0:00":signed(bk);
   sb.style.color=bk>=0?"var(--verdigris)":"var(--molten)";
+
+  const gap=planTot-owed,fl2=document.getElementById("planFlag");
+  fl2.innerHTML=(planned&&Math.abs(gap)>MIN)
+    ?`<div class="nudge ${gap<0?"info":"good"}" style="margin:12px 0 0"><div style="flex:1">
+        <b>Plan ${gap<0?"is short":"runs over"}</b><p>Your days add up to ${dur(planTot,"hm")} against a week of ${dur(owed,"hm")} — ${dur(Math.abs(gap),"hm")} ${gap<0?"still to place somewhere":"more than the week asks for"}.</p>
+        <div class="linkrow"><button class="btn" id="planFix">Open the plan</button></div></div></div>`:"";
+  const pf=document.getElementById("planFix");if(pf)pf.onclick=()=>openPlan(ks);
 
   const hrs=w/HR,fl=document.getElementById("wkFlag");
   fl.innerHTML=hrs>=48?`<div class="nudge ${hrs>=55?"warn":"info"}" style="margin:12px 0 0"><div>
@@ -669,6 +695,66 @@ function resolveStale(then){
   document.getElementById("stD").onclick=()=>{
     S.shifts=S.shifts.filter(x=>x.id!==s.id);logEdit(k+" open day removed");
     save();closeSheet();render();if(then)then()};}
+
+/* the week planner */
+function openPlan(ks){
+  const owed=ks.reduce((a,k)=>a+expectedOn(k),0),t=key(),now=Date.now();
+  const draft={};ks.forEach(k=>draft[k]=plannedOn(k)/HR);
+  const paint=()=>{
+    const tot=ks.reduce((a,k)=>a+draft[k],0)*HR,gap=owed-tot;
+    sheet(`<h2>Plan the week</h2>
+      <div class="sh-sub">Shape the days around what's happening at home. The week still owes ${dur(owed,"hm")} — this only decides which days carry it.</div>
+      <div id="plRows"></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 2px 4px;
+        border-top:1px solid var(--hair);margin-top:6px">
+        <span style="font-family:var(--semi);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer)">Plan totals</span>
+        <span style="font-family:var(--mono);font-size:20px;color:${Math.abs(gap)<MIN?"var(--verdigris)":"var(--molten)"}">${dur(tot)}</span></div>
+      <div class="mut" style="text-align:center;padding-bottom:12px;color:${Math.abs(gap)<MIN?"var(--verdigris)":"var(--dim)"}">
+        ${Math.abs(gap)<MIN?"Balanced against the week"
+          :gap>0?dur(gap,"hm")+" still to place":dur(-gap,"hm")+" more than the week asks for"}</div>
+      <button class="btn go wide" id="plGo" style="min-height:52px">Save the plan</button>
+      <div class="split" style="margin-top:8px">
+        <button class="btn" id="plSpread">Spread the rest</button>
+        <button class="btn" id="plReset">Back to normal</button></div>`);
+    document.getElementById("plRows").innerHTML=ks.map(k=>{
+      const d=fromKey(k),did=dayWorked(k,now),v=draft[k],past=k<t,today=k===t;
+      const diff=did-v*HR;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--hair2);${past&&!did?"opacity:.5":""}">
+        <span style="width:50px;flex:none;font-family:var(--mono);font-size:13px;line-height:1.2;color:${today?"var(--molten)":"var(--dim)"}">
+          ${DOW[d.getDay()]}<br><span style="font-size:11px;color:var(--dimmer)">${d.getDate()}/${d.getMonth()+1}</span></span>
+        <button class="btn" data-m="${k}" style="width:40px;min-height:42px;padding:0;flex:none;font-size:18px">−</button>
+        <span style="flex:1;text-align:center;font-family:var(--mono);font-size:17px;color:${v?"var(--bone)":"var(--dimmer)"}">${v?dur(v*HR):"off"}</span>
+        <button class="btn" data-p="${k}" style="width:40px;min-height:42px;padding:0;flex:none;font-size:18px">＋</button>
+        <span style="width:58px;flex:none;text-align:right;font-family:var(--mono);font-size:12px;color:${!did?"var(--dimmer)":Math.abs(diff)<MIN?"var(--verdigris)":diff>0?"var(--verdigris)":"var(--molten)"}">
+          ${did&&(past||today)?signed(diff):""}</span></div>`}).join("");
+    document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{
+      draft[b.dataset.m]=Math.max(0,Math.round((draft[b.dataset.m]-.5)*2)/2);paint()});
+    document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{
+      draft[b.dataset.p]=Math.min(16,Math.round((draft[b.dataset.p]+.5)*2)/2);paint()});
+    document.getElementById("plSpread").onclick=()=>{
+      if(Math.abs(gap)<MIN)return pushNudge("info","Nothing to spread","The plan already adds up.");
+      /* only days still to come that you haven't deliberately shortened — the
+         whole point of lowering Tuesday is that Tuesday shouldn't get it back */
+      let elig=ks.filter(k=>k>=t&&expectedOn(k)>0&&draft[k]*HR>=expectedOn(k));
+      if(!elig.length)elig=ks.filter(k=>k>=t&&draft[k]>0);
+      if(!elig.length)return pushNudge("info","Nowhere to put it",
+        "No days left this week to carry it. Try lowering a day less, or add hours to next week.");
+      /* hand out half-hours one at a time so the total lands exactly */
+      let units=Math.round(gap/(30*MIN)),i=0,guard=0;
+      while(units!==0&&guard++<400){
+        const k=elig[i%elig.length];i++;
+        if(units>0){draft[k]+=.5;units--}
+        else if(draft[k]>=.5){draft[k]-=.5;units++}
+        else if(elig.every(x=>draft[x]<.5))break;
+      }
+      paint()};
+    document.getElementById("plReset").onclick=()=>{ks.forEach(k=>draft[k]=expectedOn(k)/HR);paint()};
+    document.getElementById("plGo").onclick=()=>{
+      ks.forEach(k=>{
+        if(Math.abs(draft[k]*HR-expectedOn(k))<MIN)delete S.plan[k];
+        else S.plan[k]=draft[k]});
+      logEdit("Week of "+ks[0]+" planned");save();closeSheet();render()};};
+  paint();}
 
 /* add / edit a day */
 function addDay(){
