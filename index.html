@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hours">
+<title>Hours</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=Barlow+Semi+Condensed:wght@600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14161c; --slab:#1c202a; --slab2:#242936; --slab3:#2d3342;
+  --bone:#e9e5db; --dim:#8b909d; --dimmer:#5f6572;
+  --molten:#ff8c1a; --verdigris:#4fb8a2; --oxide:#d05540; --violet:#8d7ce0;
+  --hair:rgba(233,229,219,.10); --hair2:rgba(233,229,219,.06);
+  --disp:'Barlow Condensed',Impact,sans-serif;
+  --semi:'Barlow Semi Condensed',sans-serif;
+  --body:'Barlow',system-ui,sans-serif;
+  --mono:'DM Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--ink);color:var(--bone);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-bottom:calc(74px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(120% 55% at 50% -10%,rgba(255,140,26,.07),transparent 60%)}
+button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,select{font-family:inherit;font-size:16px}
+.wrap{max-width:520px;margin:0 auto;padding:0 14px}
+header.top{padding:calc(14px + env(safe-area-inset-top)) 14px 10px;max-width:520px;margin:0 auto;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.brand{font-family:var(--disp);font-weight:700;font-size:30px;letter-spacing:.06em;
+  text-transform:uppercase;line-height:.95}
+.brand span{color:var(--molten)}
+.eyebrow{font-family:var(--semi);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--dimmer);margin-bottom:3px}
+.ver{font-family:var(--mono);font-size:10px;color:var(--dimmer);text-align:right}
+
+.card{background:linear-gradient(178deg,var(--slab2),var(--slab));border:1px solid var(--hair);
+  border-radius:3px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(233,229,219,.18),transparent)}
+.card-lbl{font-family:var(--semi);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dimmer);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+.pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--semi);font-size:11px;
+  letter-spacing:.17em;text-transform:uppercase;padding:5px 11px;border-radius:100px;border:1px solid currentColor}
+.pill i{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.pill.on{color:var(--molten)}.pill.brk{color:var(--violet)}.pill.off{color:var(--dim)}
+.pill.on i,.pill.brk i{animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.pill i{animation:none!important}}
+
+.readout{font-family:var(--mono);font-weight:500;font-size:clamp(48px,16vw,70px);line-height:1;
+  letter-spacing:-.03em;margin:12px 0 2px;font-variant-numeric:tabular-nums}
+.readout.on{color:var(--molten)}.readout.brk{color:var(--violet)}
+.readout small{font-size:.34em;letter-spacing:.02em;color:var(--dim);margin-left:.12em}
+.sub{font-family:var(--semi);font-size:12.5px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase}
+
+.bar{height:8px;background:#12141a;border:1px solid var(--hair2);border-radius:100px;
+  overflow:visible;margin:14px 0 7px;position:relative}
+.bar>i{display:block;height:100%;background:var(--molten);border-radius:100px;transition:width .6s ease}
+.bar>i.done{background:var(--verdigris)}
+.bar>u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--bone);opacity:.6;transition:left .6s ease}
+.barfoot{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+.punch{width:100%;min-height:62px;border-radius:3px;margin-top:14px;font-family:var(--disp);
+  font-weight:700;font-size:23px;letter-spacing:.13em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;border:1px solid transparent;transition:transform .08s}
+.punch:active{transform:scale(.985)}
+.punch.go{background:var(--molten);color:#1a1206;box-shadow:0 8px 26px -12px rgba(255,140,26,.7)}
+.punch.stop{background:transparent;color:var(--bone);border-color:rgba(233,229,219,.3)}
+.btnrow{display:grid;gap:8px;margin-top:8px}
+.btn{min-height:46px;border-radius:3px;border:1px solid var(--hair);background:#191d26;
+  font-family:var(--semi);font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;padding:0 12px;color:var(--dim);text-align:center}
+.btn:active{background:var(--slab3)}
+.btn.v{color:var(--violet);border-color:rgba(141,124,224,.35)}
+.btn.go{color:var(--molten);border-color:rgba(255,140,26,.45)}
+.btn.ok{color:var(--verdigris);border-color:rgba(79,184,162,.4)}
+.btn.bad{color:var(--oxide);border-color:rgba(208,85,64,.35)}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.35}
+.noteline{width:100%;margin-top:10px;background:#12141a;border:1px solid var(--hair2);color:var(--bone);
+  border-radius:3px;padding:11px 12px;min-height:44px;font-size:15px}
+.noteline::placeholder{color:var(--dimmer)}
+
+.nudge{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;border-radius:3px;margin-bottom:9px;
+  border:1px solid;background:#1a1e27}
+.nudge b{display:block;font-family:var(--semi);font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:3px}
+.nudge p{margin:0;font-size:14.5px;opacity:.85}
+.nudge .x{margin-left:auto;flex:none;width:30px;height:30px;color:var(--dimmer);font-size:19px;line-height:1}
+.nudge.warn{border-color:rgba(208,85,64,.42)}.nudge.warn b{color:var(--oxide)}
+.nudge.info{border-color:rgba(255,140,26,.38)}.nudge.info b{color:var(--molten)}
+.nudge.good{border-color:rgba(79,184,162,.38)}.nudge.good b{color:var(--verdigris)}
+.linkrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.linkrow .btn{flex:1;min-height:40px}
+
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:64px;
+  margin:14px 0 6px;position:relative}
+.wbar{width:100%;border-radius:2px 2px 0 0;background:var(--slab3);min-height:3px;transition:height .5s ease}
+.wbar.done{background:var(--verdigris)}.wbar.over{background:var(--molten)}
+.wbar.today{outline:1px solid rgba(233,229,219,.35);outline-offset:1px}
+.wlbl{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;font-family:var(--semi);font-size:10.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--dimmer);text-align:center}
+.wlbl b{display:block;color:var(--dim);font-family:var(--mono);font-size:10px;font-weight:400;letter-spacing:0}
+.tgtline{position:absolute;left:0;right:0;border-top:1px dashed rgba(233,229,219,.22);pointer-events:none}
+
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--hair2);
+  border:1px solid var(--hair);border-radius:3px;overflow:hidden;margin-top:14px}
+.stat{background:var(--slab);padding:11px 8px;text-align:center}
+.stat b{display:block;font-family:var(--mono);font-size:18px;letter-spacing:-.02em}
+.stat span{font-family:var(--semi);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer)}
+
+.hrow{display:flex;gap:11px;align-items:center;padding:12px 0;border-bottom:1px solid var(--hair2);
+  width:100%;text-align:left}
+.hrow:last-child{border-bottom:0}
+.hdate{font-family:var(--mono);font-size:12px;color:var(--dim);width:54px;flex:none;line-height:1.25}
+.hdate b{display:block;color:var(--bone);font-size:15px;font-weight:400}
+.hmid{flex:1;min-width:0}
+.hmid b{font-family:var(--mono);font-size:14.5px;font-weight:400;display:block}
+.hmid span{font-size:13px;color:var(--dimmer);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hmid span.note{color:var(--dim);font-style:italic}
+.hdelta{font-family:var(--mono);font-size:14px;flex:none}
+.hdelta.pos{color:var(--verdigris)}.hdelta.neg{color:var(--molten)}.hdelta.off{color:var(--dimmer)}
+.tag{display:inline-block;font-family:var(--semi);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  padding:1px 6px;border-radius:2px;margin-left:5px;border:1px solid currentColor;color:var(--oxide)}
+
+.frow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--hair2)}
+.frow:last-child{border-bottom:0}
+.frow label{flex:1;font-size:15px}
+.frow label small{display:block;color:var(--dimmer);font-size:12.5px;line-height:1.35;margin-top:1px}
+.frow input[type=time],.frow input[type=number],.frow input[type=date],.frow select{
+  background:#12141a;border:1px solid var(--hair);color:var(--bone);border-radius:3px;padding:9px 10px;
+  font-family:var(--mono);width:130px;text-align:center;min-height:44px}
+.sw{width:50px;height:29px;border-radius:100px;background:#12141a;border:1px solid var(--hair);
+  position:relative;flex:none;transition:background .2s}
+.sw i{position:absolute;top:2px;left:2px;width:23px;height:23px;border-radius:50%;background:var(--dimmer);
+  transition:transform .2s,background .2s}
+.sw[aria-checked=true]{background:rgba(255,140,26,.2);border-color:rgba(255,140,26,.5)}
+.sw[aria-checked=true] i{transform:translateX(21px);background:var(--molten)}
+.dow{display:flex;gap:5px;padding-top:10px}
+.dow button{width:34px;height:38px;border-radius:3px;border:1px solid var(--hair);font-family:var(--semi);
+  font-size:11px;color:var(--dimmer);background:#12141a}
+.dow button[aria-pressed=true]{color:var(--molten);border-color:rgba(255,140,26,.5);background:rgba(255,140,26,.1)}
+
+.scrim{position:fixed;inset:0;background:rgba(8,9,12,.78);z-index:60;display:none;align-items:flex-end;justify-content:center}
+.scrim.open{display:flex}
+.sheet{background:var(--slab);border-top:1px solid var(--hair);border-radius:10px 10px 0 0;width:100%;
+  max-width:520px;padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;
+  animation:up .28s cubic-bezier(.2,.8,.3,1)}
+@keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+.sheet h2{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 2px}
+.sheet .sh-sub{font-family:var(--mono);font-size:12px;color:var(--dimmer);margin-bottom:14px;line-height:1.5}
+.grabber{width:38px;height:4px;border-radius:100px;background:var(--slab3);margin:0 auto 14px}
+.sheet .noteline{margin-top:0}
+
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22,28,.94);
+  backdrop-filter:blur(14px);border-top:1px solid var(--hair);padding-bottom:env(safe-area-inset-bottom)}
+.tabs .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+.tabs button{min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  font-family:var(--semi);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer)}
+.tabs button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6}
+.tabs button[aria-current=page]{color:var(--molten)}
+.view{display:none}.view.on{display:block}
+.mut{color:var(--dimmer);font-size:13.5px;line-height:1.5}
+.empty{text-align:center;padding:30px 10px;color:var(--dimmer)}
+.empty b{display:block;font-family:var(--disp);font-size:20px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:5px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prose h3{font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:.06em;text-transform:uppercase;margin:0 0 2px}
+.prose .src{font-family:var(--mono);font-size:11px;color:var(--dimmer);margin-bottom:6px}
+.prose p{margin:0 0 8px;font-size:14.5px;color:var(--dim);line-height:1.5}
+.prose p b{color:var(--bone);font-weight:500}
+.prose .item{padding:14px 0;border-bottom:1px solid var(--hair2)}
+.prose .item:last-child{border-bottom:0;padding-bottom:0}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <div class="eyebrow">Time at work</div>
+    <div class="brand">Hour<span>s</span></div>
+  </div>
+  <div class="ver">v2.1<br><span id="storeState"></span></div>
+</header>
+
+<!-- ══════════ TODAY ══════════ -->
+<section class="view on wrap" id="v-today">
+  <div id="nudges"></div>
+  <div class="card">
+    <div class="card-lbl"><span id="todayLbl">Today</span><span id="statusPill"></span></div>
+    <div class="readout" id="readout">0:00<small>hrs</small></div>
+    <div class="sub" id="readSub">Not on the clock</div>
+    <div class="bar"><i id="progBar" style="width:0%"></i></div>
+    <div class="barfoot"><span id="progL"></span><span id="progR"></span></div>
+    <button class="punch go" id="punchBtn">Clock in</button>
+    <div class="btnrow" id="btnRow"></div>
+    <input class="noteline" id="todayNote" placeholder="Note for today — optional">
+  </div>
+
+  <div class="card">
+    <div class="card-lbl"><span id="wkLbl">This week</span><span id="wkNav" style="display:flex;gap:6px"></span></div>
+    <div class="readout" id="wkWorked" style="font-size:clamp(36px,11.5vw,50px);margin:0 0 2px">0:00</div>
+    <div class="sub" id="wkLeft"></div>
+    <div class="bar"><i id="wkBar" style="width:0%"></i><u id="wkPace"></u></div>
+    <div class="barfoot"><span class="mut" style="font-size:11px">line = fully caught up</span><span id="wkDays" style="font-family:var(--mono);font-size:11px;color:var(--dim)"></span></div>
+    <div class="week" id="weekBars"></div>
+    <div class="wlbl" id="weekLbls"></div>
+    <div class="stats">
+      <div class="stat"><b id="stLeft">0:00</b><span id="stLeftK">To do</span></div>
+      <div class="stat"><b id="stPace">level</b><span>Vs pace</span></div>
+      <div class="stat"><b id="stBank">0:00</b><span>Running</span></div>
+    </div>
+    <div id="wkFlag"></div>
+  </div>
+</section>
+
+<!-- ══════════ DAYS ══════════ -->
+<section class="view wrap" id="v-days">
+  <div class="card">
+    <div class="card-lbl"><span>Your days</span><span class="mut" style="font-size:10px">Tap to edit</span></div>
+    <button class="btn go wide" id="addDay" style="min-height:50px;margin-bottom:6px">＋ Add a day you missed</button>
+    <div id="histList"></div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">Your own copy</div>
+    <p class="mut" style="margin:0 0 12px">All of this lives on this phone only. Export now and then so a lost phone doesn't take the record with it.</p>
+    <div class="split">
+      <button class="btn" id="expCsv">Export CSV</button>
+      <button class="btn" id="expJson">Backup</button>
+    </div>
+    <button class="btn wide" id="impJson" style="margin-top:8px">Restore a backup</button>
+    <input type="file" id="fileIn" accept=".json,application/json" hidden>
+    <button class="btn wide" id="showLog" style="margin-top:8px">Change log</button>
+  </div>
+</section>
+
+<!-- ══════════ SETUP ══════════ -->
+<section class="view wrap" id="v-set">
+  <div class="card">
+    <div class="card-lbl">Your normal day</div>
+    <div class="frow"><label>Hours a day<small>What a full day owes</small></label><input type="number" id="s-target" step="0.25" min="1" max="16"></div>
+    <div class="frow"><label>Usual start<small>Only used to prefill forms</small></label><input type="time" id="s-cs"></div>
+    <div class="frow"><label>Usual finish<small>Used when a day is left running</small></label><input type="time" id="s-ce"></div>
+    <div class="frow"><label>Week starts<small></small></label><select id="s-ws"><option value="1">Monday</option><option value="0">Sunday</option></select></div>
+    <div class="frow" style="border:0;padding-bottom:0"><label>Days you work<small>The bank expects hours on these</small></label></div>
+    <div class="dow" id="s-dow"></div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">Meal break</div>
+    <div class="frow"><label>Unpaid<small>Deducted from your hours. Leave on unless your workplace pays through breaks.</small></label><button class="sw" id="s-meal" role="switch"><i></i></button></div>
+    <div class="frow"><label>Remind me<small>Once, about halfway through the day</small></label><button class="sw" id="s-mrem" role="switch"><i></i></button></div>
+    <div class="frow"><label>Check at clock-out<small>Asks if you took it before the day is filed</small></label><button class="sw" id="s-mchk" role="switch"><i></i></button></div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">Nudges</div>
+    <div class="frow"><label>Full day done<small>One nudge when you hit your hours</small></label><button class="sw" id="s-done" role="switch"><i></i></button></div>
+    <div class="frow"><label>Long day<small>If you pass two hours over</small></label><button class="sw" id="s-long" role="switch"><i></i></button></div>
+    <div class="frow"><label>Buzz the phone</label><button class="sw" id="s-vib" role="switch"><i></i></button></div>
+    <div class="frow"><label>System notifications<small id="notifNote"></small></label><button class="sw" id="s-notif" role="switch"><i></i></button></div>
+  </div>
+  <div class="card">
+    <div class="card-lbl"><span>Work network</span><span class="mut" id="netState" style="font-size:10px">Off</span></div>
+    <p class="mut" style="margin:0 0 10px">Tap this at work on the office Wi-Fi. It can't read the network name — no browser allows that — but it can tell work from home, and offer to start your day from when it first saw you on it.</p>
+    <p class="mut" id="netSeen" style="margin:0 0 12px;color:var(--dim)"></p>
+    <div class="split"><button class="btn" id="netSet">Remember this</button><button class="btn" id="netFor">Forget</button></div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">Punch automatically</div>
+    <p class="mut" style="margin:0 0 10px">In Shortcuts, make a personal automation with one action — Open URL — set to Run Immediately. Trigger on <b style="color:var(--bone)">Wi-Fi</b> joining the office for clocking in. There's no "left the Wi-Fi" trigger, so use <b style="color:var(--bone)">Leave</b> a location for clocking out.</p>
+    <button class="btn wide" id="cpIn" style="margin-bottom:8px">Copy the clock-in URL</button>
+    <button class="btn wide" id="cpOut">Copy the clock-out URL</button>
+  </div>
+  <div class="card">
+    <div class="card-lbl"><span>Backup &amp; sync</span><span class="mut" id="syncState" style="font-size:10px">Not set up</span></div>
+    <div id="syncBody"></div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">Reference</div>
+    <button class="btn wide" id="showRules">The rules behind the checks</button>
+    <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
+  </div>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.1 · works offline</p>
+</section>
+
+<nav class="tabs"><div class="in">
+  <button data-v="today" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Today</button>
+  <button data-v="days"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg>Days</button>
+  <button data-v="set"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Setup</button>
+</div></nav>
+
+<div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
+
+<script>
+"use strict";
+/* ════════ storage ════════ */
+const Store=(()=>{let ok=false,mem={};try{localStorage.setItem("__p","1");localStorage.removeItem("__p");ok=true}catch(e){}
+ return{ok,get:k=>{try{return ok?localStorage.getItem(k):(k in mem?mem[k]:null)}catch(e){return null}},
+ set:(k,v)=>{try{ok?localStorage.setItem(k,v):mem[k]=v}catch(e){mem[k]=v}},
+ del:k=>{try{ok?localStorage.removeItem(k):delete mem[k]}catch(e){}}}})();
+document.getElementById("storeState").textContent=Store.ok?"":"session only";
+
+const KEY="hours.v2",OLD="shiftcard.v1";
+const DEF={v:2,settings:{target:8,usualStart:"09:00",usualEnd:"17:00",workDays:[1,2,3,4,5],weekStart:1,
+  mealUnpaid:true,mealRem:true,mealChk:true,doneRem:true,longRem:true,vibrate:true,notif:false},
+  shifts:[],notes:{},offDays:{},audit:[],fired:{},ackBreak:{},netSeen:{}};
+let S=load();
+function load(){
+  let raw=Store.get(KEY),migrated=false;
+  if(!raw){raw=Store.get(OLD);migrated=!!raw}
+  if(!raw)return structuredClone(DEF);
+  try{
+    const o=JSON.parse(raw);
+    const s={...structuredClone(DEF),...o,settings:{...DEF.settings,...(o.settings||{})}};
+    if(migrated){
+      /* v1 kept a note per shift and tracked rest breaks; notes move to the day
+         and rest breaks are dropped — they're paid, so they never moved the total */
+      s.notes=s.notes||{};
+      (s.shifts||[]).forEach(sh=>{
+        if(sh.note&&!s.notes[sh.date])s.notes[sh.date]=sh.note;
+        delete sh.note;
+        sh.breaks=(sh.breaks||[]).filter(b=>b.type==="meal")});
+      s.settings.usualStart=o.settings&&o.settings.coreStart||DEF.settings.usualStart;
+      s.settings.usualEnd=o.settings&&o.settings.coreEnd||DEF.settings.usualEnd;
+      s.v=2;
+    }
+    return s}
+  catch(e){return structuredClone(DEF)}}
+function save(){S.stamp=Date.now();Store.set(KEY,JSON.stringify(S));_cache.clear();queuePush()}
+
+/* ════════ time ════════ */
+const MIN=6e4,HR=36e5;
+const pad=n=>String(n).padStart(2,"0");
+function key(d){d=d||new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function fromKey(k){const[y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d)}
+function clock(ts){const d=new Date(ts);return pad(d.getHours())+":"+pad(d.getMinutes())}
+function dur(ms,hm){if(ms==null)return"—";const neg=ms<0;ms=Math.abs(ms);
+  let h=Math.floor(ms/HR),m=Math.round(ms%HR/MIN);if(m===60){h++;m=0}
+  return(neg?"−":"")+(hm?h+"h "+pad(m)+"m":h+":"+pad(m))}
+function signed(ms){return(ms>=0?"+":"−")+dur(Math.abs(ms))}
+function dayStamp(k,hm){const d=fromKey(k),[h,m]=hm.split(":").map(Number);d.setHours(h,m,0,0);return+d}
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+/* ════════ model ════════ */
+function shiftsOn(k){return S.shifts.filter(s=>s.date===k)}
+function openShift(){return S.shifts.find(s=>!s.out)}
+function onBreak(){const s=openShift();return s?((s.breaks||[]).find(b=>!b.out)||null):null}
+function mealMs(s,now){return(s.breaks||[]).reduce((a,b)=>a+Math.max(0,(b.out||now)-b.in),0)}
+function worked(s,now){now=now||Date.now();const end=s.out||now;
+  return Math.max(0,end-s.in-(S.settings.mealUnpaid?mealMs(s,end):0))}
+function dayWorked(k,now){return shiftsOn(k).reduce((a,s)=>a+worked(s,now),0)}
+let _cache=new Map(),_stamp="";
+function dayCached(k){if(_stamp!==key()){_cache.clear();_stamp=key()}
+  if(_cache.has(k))return _cache.get(k);
+  const v=dayWorked(k);
+  if(k!==key()&&!shiftsOn(k).some(s=>!s.out))_cache.set(k,v);
+  return v}
+function expectedOn(k){return S.offDays[k]?0:
+  (S.settings.workDays.includes(fromKey(k).getDay())?S.settings.target*HR:0)}
+function allKeys(){const s=new Set(S.shifts.map(x=>x.date));
+  Object.keys(S.offDays).forEach(k=>s.add(k));Object.keys(S.notes).forEach(k=>s.add(k));
+  return[...s].sort()}
+function bank(){const t=key(),first=allKeys()[0];if(!first)return 0;let b=0;
+  for(let d=fromKey(first);key(d)<t;d.setDate(d.getDate()+1)){const k=key(d);b+=dayCached(k)-expectedOn(k)}
+  return b}
+function weekStartOf(d){const x=new Date(d),diff=(x.getDay()-S.settings.weekStart+7)%7;
+  x.setDate(x.getDate()-diff);x.setHours(0,0,0,0);return x}
+function weekKeys(st){const o=[];for(let i=0;i<7;i++){const d=new Date(st);d.setDate(d.getDate()+i);o.push(key(d))}return o}
+/* s69ZD: a meal break is due once the work period passes four hours */
+function mealsDue(ms){const h=ms/HR;if(h<=4)return 0;return h>12?2:1}
+function logEdit(w){S.audit.unshift({ts:Date.now(),w});S.audit=S.audit.slice(0,60)}
+function finishBy(s,now){const owed=(S.settings.mealUnpaid&&mealsDue(S.settings.target*HR)>0
+  &&mealMs(s,now)<29*MIN)?30*MIN:0;
+  return s.in+S.settings.target*HR+mealMs(s,now)+owed}
+
+/* ════════ actions ════════ */
+function staleShift(){const t=key();return S.shifts.find(s=>!s.out&&s.date!==t)}
+function clockIn(at){
+  if(openShift())return;
+  if(staleShift())return resolveStale(()=>clockIn(at));
+  const now=Date.now();
+  S.shifts.push({id:now,date:key(),in:at||now,out:null,breaks:[]});
+  if(at&&at<now-2*MIN)logEdit(key()+" start backdated to "+clock(at));
+  save();render()}
+function clockOut(){
+  const s=openShift();if(!s)return;
+  const b=onBreak();if(b)b.out=Date.now();
+  s.out=Date.now();save();
+  if(S.settings.mealChk)openCloseout(s);else render()}
+function startBreak(){const s=openShift();if(!s||onBreak())return;
+  (s.breaks=s.breaks||[]).push({in:Date.now(),out:null,type:"meal"});save();render()}
+function endBreak(){const b=onBreak();if(!b)return;b.out=Date.now();save();render()}
+
+/* ════════ nudges ════════ */
+let live=[];
+function pushNudge(kind,title,body,notify,act){
+  if(live.some(n=>n.title===title))return;
+  live.push({kind,title,body,id:"n"+Math.random().toString(36).slice(2),act});
+  if(notify)fireNotify(title,body);
+  if(S.settings.vibrate&&navigator.vibrate)try{navigator.vibrate([25,60,25])}catch(e){}
+  drawNudges()}
+function fireNotify(t,b){if(!S.settings.notif||typeof Notification==="undefined")return;
+  if(Notification.permission!=="granted")return;try{new Notification("Hours · "+t,{body:b,tag:t})}catch(e){}}
+function once(id,fn){const k=key();S.fired[k]=S.fired[k]||{};
+  if(S.fired[k][id])return;S.fired[k][id]=1;save();fn()}
+function drawNudges(){
+  const el=document.getElementById("nudges");
+  el.innerHTML=live.map(n=>`<div class="nudge ${n.kind}"><div style="flex:1"><b>${n.title}</b><p>${n.body}</p>
+    ${n.act?`<div class="linkrow"><button class="btn" data-do="${n.id}">${n.act[0]}</button></div>`:""}</div>
+    <button class="x" data-kill="${n.id}" aria-label="Dismiss">×</button></div>`).join("");
+  el.querySelectorAll("[data-kill]").forEach(b=>b.onclick=()=>{
+    live=live.filter(n=>n.id!==b.dataset.kill);drawNudges()});
+  el.querySelectorAll("[data-do]").forEach(b=>b.onclick=()=>{
+    const n=live.find(x=>x.id===b.dataset.do);if(!n)return;
+    live=live.filter(x=>x.id!==n.id);drawNudges();n.act[1]()})}
+function checkNudges(){
+  const k=key(),s=openShift(),tgt=S.settings.target*HR,w=dayWorked(k,Date.now());
+  if(s&&!onBreak()&&S.settings.mealRem&&mealsDue(tgt)>0&&mealMs(s,Date.now())<29*MIN&&w>=tgt/2)
+    once("meal",()=>pushNudge("info","Meal break",
+      "Halfway. Thirty minutes unpaid — take it and you finish half an hour later, skip it and you finish on time. Your call.",true,
+      ["Start it now",startBreak]));
+  if(s&&S.settings.doneRem&&w>=tgt)
+    once("done",()=>pushNudge("good","Full day done",
+      "That's "+dur(tgt,"hm")+". Anything past here goes into the running total.",true));
+  if(s&&S.settings.longRem&&w>=tgt+2*HR)
+    once("long",()=>pushNudge("warn","Two hours over",
+      dur(w,"hm")+" on the clock. Worth checking you didn't leave it running.",true));
+  const wt=weekKeys(weekStartOf(new Date())).reduce((a,x)=>a+dayWorked(x,Date.now()),0)/HR;
+  if(wt>=55)once("w55",()=>pushNudge("warn","55 hours this week",
+    "WHO and ILO put 55+ hour weeks at 35% higher stroke risk. That's the red line.",true));
+  else if(wt>=48)once("w48",()=>pushNudge("warn","48 hours this week",
+    "The EU cap is a 48-hour average. One week over is fine; a run of them isn't.",true));
+  const st=staleShift();
+  if(st)once("stale-"+st.date,()=>pushNudge("warn","A day is still running",
+    st.date+" never got clocked out.",true,["Close it off",()=>resolveStale()]));}
+
+/* ════════ render ════════ */
+function render(){
+  const now=Date.now(),k=key(),s=openShift(),b=onBreak(),tgt=S.settings.target*HR,w=dayWorked(k,now);
+  document.getElementById("todayLbl").textContent=DOW[new Date().getDay()]+" "+
+    fromKey(k).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+  document.getElementById("statusPill").innerHTML=b?`<span class="pill brk"><i></i>On break</span>`
+    :s?`<span class="pill on"><i></i>On the clock</span>`:`<span class="pill off"><i></i>Off</span>`;
+  const ro=document.getElementById("readout");
+  if(b){ro.className="readout brk";ro.innerHTML=dur(now-b.in)+"<small>break</small>"}
+  else{ro.className="readout"+(s?" on":"");ro.innerHTML=dur(w)+"<small>hrs</small>"}
+  document.getElementById("readSub").textContent=
+    b?"Back when you're ready · "+dur(w,"hm")+" worked"
+    :s?"In at "+clock(s.in)+" · full day at "+clock(finishBy(s,now))
+    :w>0?"Done for today · "+dur(w,"hm"):"Not on the clock";
+  const bar=document.getElementById("progBar");
+  bar.style.width=Math.min(100,w/tgt*100)+"%";bar.className=w>=tgt?"done":"";
+  document.getElementById("progL").textContent=dur(w,"hm");
+  document.getElementById("progR").textContent=w>=tgt?"+"+dur(w-tgt,"hm")+" over":dur(tgt-w,"hm")+" to go";
+  const pb=document.getElementById("punchBtn");
+  pb.textContent=s?"Clock out":"Clock in";pb.className="punch "+(s?"stop":"go");
+  pb.onclick=s?clockOut:()=>clockIn();
+
+  const br=document.getElementById("btnRow");
+  if(!s)br.innerHTML=`<button class="btn" id="adj">Been here a while? Set an earlier start</button>`;
+  else if(b)br.innerHTML=`<button class="btn v" id="bEnd">Back from break — ${dur(now-b.in)}</button>`
+    +`<button class="btn" id="adj">In at ${clock(s.in)} · adjust</button>`;
+  else br.innerHTML=`<button class="btn v" id="bGo">Meal break${mealMs(s,now)>MIN?" · "+dur(mealMs(s,now))+" so far":" · 30m"}</button>`
+    +`<button class="btn" id="adj">In at ${clock(s.in)} · adjust</button>`;
+  const g=document.getElementById("bGo"),e=document.getElementById("bEnd");
+  if(g)g.onclick=startBreak; if(e)e.onclick=endBreak;
+  document.getElementById("adj").onclick=startSheet;
+
+  const nt=document.getElementById("todayNote");
+  if(document.activeElement!==nt)nt.value=S.notes[k]||"";
+  nt.onchange=()=>{const v=nt.value.trim();
+    if(v)S.notes[k]=v;else delete S.notes[k];save();drawDays()};
+
+  drawWeek();drawDays();checkNudges();
+}
+function tick(){
+  const s=openShift(),b=onBreak();if(!s&&!b)return;
+  const now=Date.now(),k=key(),tgt=S.settings.target*HR,w=dayWorked(k,now);
+  const ro=document.getElementById("readout");
+  if(b){ro.innerHTML=dur(now-b.in)+"<small>break</small>";
+    const e=document.getElementById("bEnd");if(e)e.textContent="Back from break — "+dur(now-b.in)}
+  else ro.innerHTML=dur(w)+"<small>hrs</small>";
+  const bar=document.getElementById("progBar");
+  bar.style.width=Math.min(100,w/tgt*100)+"%";bar.className=w>=tgt?"done":"";
+  document.getElementById("progL").textContent=dur(w,"hm");
+  document.getElementById("progR").textContent=w>=tgt?"+"+dur(w-tgt,"hm")+" over":dur(tgt-w,"hm")+" to go";
+  drawWeek();checkNudges()}
+
+let wkOff=0;
+function drawWeek(){
+  const now=Date.now(),t=key();
+  const st=weekStartOf(new Date());st.setDate(st.getDate()+wkOff*7);
+  const ks=weekKeys(st),tgt=S.settings.target*HR;
+  const w=ks.reduce((a,k)=>a+dayWorked(k,now),0);
+  const owed=ks.reduce((a,k)=>a+expectedOn(k),0);
+  const byNow=ks.filter(k=>k<=t).reduce((a,k)=>a+expectedOn(k),0);
+  const left=owed-w,pace=w-byNow;
+  const daysIn=ks.filter(k=>dayWorked(k,now)>0).length;
+
+  document.getElementById("wkLbl").textContent=wkOff===0?"This week":wkOff===-1?"Last week":
+    fromKey(ks[0]).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+  document.getElementById("wkNav").innerHTML=
+    `<button class="btn" style="min-height:30px;padding:0 11px" id="wP">‹</button>
+     <button class="btn" style="min-height:30px;padding:0 11px" id="wN" ${wkOff>=0?"disabled":""}>›</button>`;
+  document.getElementById("wP").onclick=()=>{wkOff--;drawWeek()};
+  document.getElementById("wN").onclick=()=>{if(wkOff<0){wkOff++;drawWeek()}};
+
+  const ro=document.getElementById("wkWorked");
+  ro.innerHTML=dur(w)+`<small>of ${dur(owed)}</small>`;
+  ro.className="readout"+(w>=owed&&owed>0?" on":"");
+  document.getElementById("wkLeft").textContent=
+    left>MIN?dur(left,"hm")+" still to do":left<-MIN?dur(-left,"hm")+" extra this week":"Week's hours are in";
+  const bar=document.getElementById("wkBar");
+  bar.style.width=Math.min(100,w/Math.max(owed,1)*100)+"%";bar.className=w>=owed?"done":"";
+  document.getElementById("wkPace").style.left=Math.min(100,byNow/Math.max(owed,1)*100)+"%";
+  document.getElementById("wkDays").textContent=daysIn+(daysIn===1?" day":" days");
+
+  const max=Math.max(tgt*1.3,...ks.map(k=>dayWorked(k,now)));
+  document.getElementById("weekBars").innerHTML=ks.map(k=>{
+    const d=dayWorked(k,now),h=Math.max(d?4:2,d/max*100);
+    return `<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+      <div class="wbar ${d>=tgt*1.02?"over":d>=tgt*.98?"done":""} ${k===t?"today":""}" style="height:${h}%"></div></div>`
+    }).join("")+`<div class="tgtline" style="bottom:${tgt/max*100}%"></div>`;
+  document.getElementById("weekLbls").innerHTML=ks.map(k=>{
+    const d=dayWorked(k,now);
+    return `<div>${DOW[fromKey(k).getDay()].slice(0,2)}<b>${d?dur(d):"·"}</b></div>`}).join("");
+
+  const sl=document.getElementById("stLeft");
+  sl.textContent=Math.abs(left)<MIN?"0:00":dur(Math.abs(left));
+  sl.style.color=left>MIN?"var(--bone)":"var(--verdigris)";
+  document.getElementById("stLeftK").textContent=left>MIN?"To do":"Extra";
+  const sp=document.getElementById("stPace");
+  sp.textContent=Math.abs(pace)<MIN?"level":signed(pace);
+  sp.style.color=pace>=-MIN?"var(--verdigris)":"var(--molten)";
+  const bk=bank(),sb=document.getElementById("stBank");
+  sb.textContent=Math.abs(bk)<MIN?"0:00":signed(bk);
+  sb.style.color=bk>=0?"var(--verdigris)":"var(--molten)";
+
+  const hrs=w/HR,fl=document.getElementById("wkFlag");
+  fl.innerHTML=hrs>=48?`<div class="nudge ${hrs>=55?"warn":"info"}" style="margin:12px 0 0"><div>
+    <b>${hrs.toFixed(1)} hours</b><p>${hrs>=55
+      ?"Past 55 — the level WHO and ILO link to a 35% higher stroke risk."
+      :"Past the 48-hour average the EU treats as the cap."}</p></div></div>`:"";
+}
+
+function drawDays(){
+  const now=Date.now(),ks=allKeys().reverse(),el=document.getElementById("histList");
+  if(!ks.length){el.innerHTML=`<div class="empty"><b>Nothing logged yet</b>Clock in, or add a day you've already worked.</div>`;return}
+  el.innerHTML=ks.slice(0,90).map(k=>{
+    const ss=shiftsOn(k).sort((a,b)=>a.in-b.in),d=fromKey(k);
+    const w=dayWorked(k,now),off=S.offDays[k],open=ss.some(s=>!s.out),note=S.notes[k];
+    const delta=w-expectedOn(k);
+    const meal=ss.reduce((a,s)=>a+mealMs(s,now),0);
+    const times=ss.length?ss.map(s=>clock(s.in)+"–"+(s.out?clock(s.out):"…")).join(", ")
+      +(meal>MIN?"  ·  "+Math.round(meal/MIN)+"m meal":""):"—";
+    return `<button class="hrow" data-day="${k}">
+      <span class="hdate">${DOW[d.getDay()]}<b>${d.getDate()}/${d.getMonth()+1}</b></span>
+      <span class="hmid"><b>${off?"Day off":dur(w,"hm")}${open?'<span class="tag">open</span>':""}</b>
+        <span${note?' class="note"':""}>${note?esc(note):times}</span></span>
+      <span class="hdelta ${off?"off":delta>=0?"pos":"neg"}">${off?"—":Math.abs(delta)<MIN?"0:00":signed(delta)}</span>
+    </button>`}).join("");
+  el.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>editDay(b.dataset.day));}
+function esc(s){return String(s).replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]))}
+
+/* ════════ sheets ════════ */
+const scrim=document.getElementById("scrim");
+function sheet(h){document.getElementById("sheet").innerHTML='<div class="grabber"></div>'+h;
+  scrim.classList.add("open");document.body.style.overflow="hidden"}
+function closeSheet(){scrim.classList.remove("open");document.body.style.overflow=""}
+scrim.onclick=e=>{if(e.target===scrim)closeSheet()};
+
+/* start time */
+function startSheet(){
+  const s=openShift(),now=Date.now();let picked=s?s.in:now;
+  const seen=S.netSeen[key()];
+  const seenBtn=(seen&&seen.first<now-2*MIN)
+    ?`<button class="btn ok wide" id="ssSeen" style="margin-bottom:10px">On the work network from ${clock(seen.first)}</button>`:"";
+  sheet(`<h2>${s?"Correct your start":"Earlier start"}</h2><div class="sh-sub" id="ssSub"></div>${seenBtn}
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
+      ${[15,30,60,120].map(m=>`<button class="btn" data-b="${m}" style="padding:0">−${m<60?m+"m":m/60+"h"}</button>`).join("")}</div>
+    <div class="frow"><label>Start time</label><input type="time" id="ssT"></div>
+    <button class="btn go wide" id="ssGo" style="min-height:52px;margin-top:8px">${s?"Save":"Clock in"}</button>
+    <button class="btn wide" id="ssX" style="margin-top:8px">Cancel</button>`);
+  const paint=()=>{document.getElementById("ssT").value=clock(picked);
+    const back=now-picked;
+    document.getElementById("ssSub").textContent=back<MIN?"Right now":dur(back,"hm")+" ago"};
+  paint();
+  if(seenBtn)document.getElementById("ssSeen").onclick=()=>{picked=seen.first;paint()};
+  document.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{
+    picked=Math.min(now,picked-(+b.dataset.b)*MIN);paint()});
+  document.getElementById("ssT").onchange=e=>{if(!e.target.value)return paint();
+    let t=dayStamp(key(),e.target.value);if(t>now+MIN)t-=24*HR;picked=t;paint()};
+  document.getElementById("ssGo").onclick=()=>{
+    if(s){const o=clock(s.in);s.in=picked;s.date=key(new Date(picked));
+      logEdit(s.date+" start "+o+" → "+clock(picked));save()}
+    else clockIn(picked);
+    closeSheet();render()};
+  document.getElementById("ssX").onclick=closeSheet;}
+
+/* clock-out review */
+function openCloseout(s){
+  const ack=S.ackBreak[s.date]||(S.ackBreak[s.date]={});
+  const paint=()=>{
+    const k=s.date,w=worked(s),tgt=S.settings.target*HR,delta=dayWorked(k)-expectedOn(k);
+    const span=s.out-s.in,due=mealsDue(Math.max(span,w)),got=Math.floor(mealMs(s,Date.now())/(29*MIN));
+    const f=[];
+    if(S.settings.mealUnpaid&&due>got&&!ack.meal)f.push({tone:"info",t:"No meal break logged",
+      d:"A "+dur(span,"hm")+" day entitles you to "+(due*30)+" minutes. Took it and forgot to tap? Log it and your day gets "+(due-got)*30+" minutes shorter. Worked through? Leave it — the time counts.",
+      a:[["Log "+((due-got)*30)+"m","fixMeal"],["Worked through","ackMeal"]]});
+    if(w>tgt+2*HR&&!ack.len)f.push({tone:"warn",t:dur(w-tgt,"hm")+" over a full day",
+      d:"Check the finish time above — a clock left running is the usual cause. If it's right, that's "+signed(delta)+" banked.",
+      a:[["It's right","ackLen"]]});
+    if(w<3*HR&&!ack.len)f.push({tone:"info",t:"Short day — "+dur(w,"hm"),
+      d:"Fix the times above if that's not right. Otherwise it shows as "+signed(delta)+" this week.",
+      a:[["It's right","ackLen"]]});
+    sheet(`<h2>Clocked out</h2>
+      <div class="sh-sub">${clock(s.in)} → ${clock(s.out)} · ${dur(w,"hm")} worked · ${signed(delta)}</div>
+      <div class="frow"><label>Finish time<small>Change it if you left earlier</small></label>
+        <input type="time" id="coT" value="${clock(s.out)}"></div>
+      ${f.length?f.map(x=>`<div class="nudge ${x.tone}" style="margin-top:10px"><div style="flex:1">
+        <b>${x.t}</b><p>${x.d}</p><div class="linkrow">${x.a.map(([l,a])=>
+        `<button class="btn" data-a="${a}">${l}</button>`).join("")}</div></div></div>`).join("")
+        :`<div class="nudge good" style="margin-top:10px"><div><b>Day checks out</b><p>Nothing to fix.</p></div></div>`}
+      <input class="noteline" id="coN" placeholder="Note for the day — optional" value="${esc(S.notes[k]||"")}" style="margin-top:12px">
+      <button class="btn go wide" id="coGo" style="min-height:52px;margin-top:10px">Done</button>`);
+    document.getElementById("coT").onchange=ev=>{
+      if(!ev.target.value)return paint();
+      let t=dayStamp(k,ev.target.value);if(t<s.in)t+=24*HR;
+      const o=clock(s.out);s.out=t;logEdit(k+" finish "+o+" → "+clock(t));save();paint();render()};
+    document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{
+      const a=b.dataset.a;
+      if(a==="fixMeal"){const n=due-got,at=s.in+Math.round(span/2)-15*MIN;
+        for(let i=0;i<n;i++)s.breaks.push({in:at+i*35*MIN,out:at+i*35*MIN+30*MIN,type:"meal"});
+        logEdit(k+" logged "+(n*30)+"m meal break")}
+      if(a==="ackMeal")ack.meal=true;
+      if(a==="ackLen")ack.len=true;
+      save();paint();render()});
+    document.getElementById("coGo").onclick=()=>{
+      const v=document.getElementById("coN").value.trim();
+      if(v)S.notes[k]=v;else delete S.notes[k];
+      save();closeSheet();render()};};
+  paint();}
+
+/* left running */
+function resolveStale(then){
+  const s=staleShift();if(!s){if(then)then();return}
+  const k=s.date,usual=dayStamp(k,S.settings.usualEnd),full=finishBy(s,s.in);
+  const opts=[];
+  if(usual>s.in)opts.push(["Usual finish · "+clock(usual),usual]);
+  if(Math.abs(full-usual)>5*MIN&&full>s.in)opts.push(["A full day · "+clock(full),full]);
+  sheet(`<h2>You never clocked out</h2>
+    <div class="sh-sub">${fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})} is
+      still running — in at ${clock(s.in)}. Set the real finish${then?" before clocking in":""}.</div>
+    ${opts.map(o=>`<button class="btn wide" data-f="${o[1]}" style="min-height:50px;margin-bottom:8px">${o[0]}</button>`).join("")}
+    <div class="frow"><label>Or set it</label><input type="time" id="stT" value="${clock(usual)}"></div>
+    <button class="btn go wide" id="stGo" style="min-height:50px;margin-top:8px">Use that time</button>
+    <button class="btn bad wide" id="stD" style="margin-top:8px">Didn't work that day — remove it</button>`);
+  const fin=t=>{if(t<=s.in)t+=24*HR;
+    (s.breaks||[]).forEach(b=>{if(!b.out)b.out=Math.min(t,b.in+30*MIN)});
+    s.out=t;logEdit(k+" left running — finish set to "+clock(t));save();closeSheet();render();
+    if(then)then()};
+  document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>fin(+b.dataset.f));
+  document.getElementById("stGo").onclick=()=>{const v=document.getElementById("stT").value;if(v)fin(dayStamp(k,v))};
+  document.getElementById("stD").onclick=()=>{
+    S.shifts=S.shifts.filter(x=>x.id!==s.id);logEdit(k+" open day removed");
+    save();closeSheet();render();if(then)then()};}
+
+/* add / edit a day */
+function addDay(){
+  const y=new Date();y.setDate(y.getDate()-1);
+  /* default the meal to whatever makes your usual span come to a full day, so
+     9:00–17:00 prefills 0 min and 9:00–17:30 prefills 30 — either way the form
+     opens on exactly one day's hours and most entries are two taps */
+  const span=dayStamp(key(),S.settings.usualEnd)-dayStamp(key(),S.settings.usualStart);
+  const defMeal=S.settings.mealUnpaid?Math.max(0,Math.round((span-S.settings.target*HR)/MIN)):0;
+  sheet(`<h2>Add a day</h2>
+    <div class="sh-sub">Prefilled with your normal day, so most of the time it's pick the date and save.</div>
+    <div class="frow"><label>Date</label><input type="date" id="adD" value="${key(y)}" max="${key()}"></div>
+    <div class="frow"><label>Start</label><input type="time" id="adI" value="${S.settings.usualStart}"></div>
+    <div class="frow"><label>Finish</label><input type="time" id="adO" value="${S.settings.usualEnd}"></div>
+    <div class="frow"><label>Meal break<small>Minutes, unpaid</small></label><input type="number" id="adM" value="${defMeal}" min="0" step="5"></div>
+    <div class="frow" style="border:0"><label>Note<small>Optional</small></label></div>
+    <input class="noteline" id="adN" placeholder="What the day was">
+    <div id="adPrev" class="mut" style="text-align:center;padding:12px 0 4px"></div>
+    <button class="btn go wide" id="adGo" style="min-height:52px">Save the day</button>
+    <button class="btn wide" id="adOff" style="margin-top:8px">Mark it a day off instead</button>`);
+  const read=()=>{
+    const k=document.getElementById("adD").value||key(y);
+    const i=document.getElementById("adI").value||S.settings.usualStart;
+    const o=document.getElementById("adO").value||S.settings.usualEnd;
+    const m=Math.max(0,+document.getElementById("adM").value||0);    let a=dayStamp(k,i),b=dayStamp(k,o);if(b<=a)b+=24*HR;
+    return{k,a,b,m,w:Math.max(0,b-a-(S.settings.mealUnpaid?m*MIN:0))}};
+  const prev=()=>{const r=read();
+    document.getElementById("adPrev").textContent=
+      dur(r.w,"hm")+" worked · "+signed(r.w-expectedOn(r.k))+" against that day"};
+  prev();
+  ["adD","adI","adO","adM"].forEach(id=>document.getElementById(id).oninput=prev);
+  document.getElementById("adGo").onclick=()=>{
+    const r=read();
+    S.shifts.push({id:Date.now(),date:r.k,in:r.a,out:r.b,
+      breaks:r.m>0?[{in:r.a+Math.round((r.b-r.a)/2),out:r.a+Math.round((r.b-r.a)/2)+r.m*MIN,type:"meal"}]:[]});
+    delete S.offDays[r.k];
+    const n=document.getElementById("adN").value.trim();if(n)S.notes[r.k]=n;
+    logEdit(r.k+" added by hand · "+dur(r.w,"hm"));save();closeSheet();render();
+    pushNudge("good","Day added",r.k+" now shows "+dur(r.w,"hm")+".")};
+  document.getElementById("adOff").onclick=()=>{
+    const r=read();S.offDays[r.k]=true;
+    const n=document.getElementById("adN").value.trim();if(n)S.notes[r.k]=n;
+    logEdit(r.k+" marked a day off");save();closeSheet();render()};}
+
+function editDay(k){
+  const ss=()=>shiftsOn(k).sort((a,b)=>a.in-b.in);
+  const paint=()=>{
+    sheet(`<h2>${fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}</h2>
+      <div class="sh-sub">${dur(dayWorked(k),"hm")} worked · ${dur(expectedOn(k),"hm")} expected · ${signed(dayWorked(k)-expectedOn(k))}</div>
+      <input class="noteline" id="edN" placeholder="Note for the day" value="${esc(S.notes[k]||"")}">
+      <div class="frow" style="margin-top:6px"><label>Day off<small>Nothing expected — leave, stat, RDO</small></label>
+        <button class="sw" id="edOff" role="switch" aria-checked="${!!S.offDays[k]}"><i></i></button></div>
+      <div id="edS"></div>
+      <button class="btn wide" id="edAdd" style="margin-top:8px">Add another block of time</button>
+      <button class="btn go wide" id="edGo" style="min-height:52px;margin-top:8px">Done</button>`);
+    document.getElementById("edS").innerHTML=ss().map(s=>{
+      const m=Math.round(mealMs(s,Date.now())/MIN);
+      return `<div style="border:1px solid var(--hair);border-radius:3px;padding:4px 12px 12px;margin:10px 0">
+        <div class="frow"><label>Start</label><input type="time" data-f="in" data-i="${s.id}" value="${clock(s.in)}"></div>
+        <div class="frow"><label>Finish</label><input type="time" data-f="out" data-i="${s.id}" value="${s.out?clock(s.out):""}"></div>
+        <div class="frow"><label>Meal<small>Minutes, unpaid</small></label><input type="number" data-f="meal" data-i="${s.id}" value="${m}" min="0" step="5"></div>
+        <button class="btn bad wide" data-del="${s.id}" style="min-height:40px">Delete</button></div>`}).join("")
+      ||`<p class="mut" style="padding:10px 0">No hours on this day.</p>`;
+    document.querySelectorAll("#edS [data-f]").forEach(inp=>inp.onchange=()=>{
+      const s=S.shifts.find(x=>x.id==inp.dataset.i);if(!s)return;const f=inp.dataset.f;
+      if(f==="in"&&inp.value){const o=clock(s.in);s.in=dayStamp(k,inp.value);logEdit(k+" start "+o+" → "+inp.value)}
+      if(f==="out"){const o=s.out?clock(s.out):"open";s.out=inp.value?dayStamp(k,inp.value):null;
+        if(s.out&&s.out<s.in)s.out+=24*HR;logEdit(k+" finish "+o+" → "+(inp.value||"open"))}
+      if(f==="meal"){const m=Math.max(0,+inp.value||0);const mid=s.in+Math.round(((s.out||Date.now())-s.in)/2);
+        s.breaks=m>0?[{in:mid,out:mid+m*MIN,type:"meal"}]:[];logEdit(k+" meal set to "+m+"m")}
+      save();paint();render()});
+    document.querySelectorAll("#edS [data-del]").forEach(b=>b.onclick=()=>{
+      S.shifts=S.shifts.filter(x=>x.id!=b.dataset.del);logEdit(k+" block deleted");save();paint();render()});
+    document.getElementById("edOff").onclick=ev=>{
+      const on=ev.currentTarget.getAttribute("aria-checked")==="true";
+      if(on)delete S.offDays[k];else S.offDays[k]=true;
+      logEdit(k+(on?" no longer a day off":" marked a day off"));save();paint();render()};
+    document.getElementById("edAdd").onclick=()=>{
+      const t=dayStamp(k,S.settings.usualStart);
+      S.shifts.push({id:Date.now(),date:k,in:t,out:t+S.settings.target*HR,breaks:[]});
+      logEdit(k+" block added");save();paint();render()};
+    document.getElementById("edGo").onclick=()=>{
+      const v=document.getElementById("edN").value.trim();
+      if(v)S.notes[k]=v;else delete S.notes[k];
+      save();closeSheet();render()};};
+  paint();}
+
+/* ════════ work network ════════ */
+function netPrefix(ip){if(!ip)return"";
+  return ip.includes(":")?ip.split(":").slice(0,4).join(":").toLowerCase():ip.split(".").slice(0,3).join(".")}
+async function myIp(){const c=new AbortController(),t=setTimeout(()=>c.abort(),6000);
+  try{const r=await fetch("https://api.ipify.org?format=json",{cache:"no-store",signal:c.signal});
+    clearTimeout(t);return(await r.json()).ip||null}catch(e){clearTimeout(t);return null}}
+let netLast="off";
+async function netCheck(){
+  if(!S.settings.workNet){netLast="off";netStatus();return"off"}
+  netLast="checking";netStatus();
+  const ip=await myIp();
+  if(!ip){netLast="unknown";netStatus();return netLast}
+  netLast=netPrefix(ip)===S.settings.workNet.prefix?"on":"away";
+  if(netLast==="on"){const k=key(),e=S.netSeen[k]||(S.netSeen[k]={first:Date.now()});
+    e.last=Date.now();save()}
+  netStatus();return netLast}
+function netStatus(){
+  const el=document.getElementById("netState");if(!el)return;
+  const m={off:["Off","var(--dimmer)"],checking:["Checking…","var(--dim)"],
+    unknown:["Can't check","var(--molten)"],on:["At work","var(--verdigris)"],away:["Not at work","var(--dim)"]};
+  const[t,c]=m[netLast]||m.off;el.textContent=t;el.style.color=c;
+  const s=S.netSeen[key()],e2=document.getElementById("netSeen");
+  if(e2)e2.textContent=s?"Seen on it today from "+clock(s.first)+" to "+clock(s.last):"";}
+async function netPrompt(){
+  if(!S.settings.workNet||openShift()||staleShift())return;
+  if(await netCheck()!=="on")return;
+  const s=S.netSeen[key()],first=s?s.first:Date.now();
+  once("netin",()=>pushNudge("info","You're at work",
+    "Not clocked in yet"+(Date.now()-first>3*MIN?" — first seen on the network at "+clock(first)+".":"."),
+    false,["Clock in from "+clock(first),()=>clockIn(first)]));}
+
+/* ════════ sync (Supabase) ════════
+   Local storage stays the source of truth — every punch is written to this
+   phone first and works with no signal. Supabase is a mirror: pushed a few
+   seconds after a change, pulled when the app opens. Config and tokens live
+   outside the synced blob so they can't loop back on themselves. */
+const SKEY="hours.sync",AKEY="hours.auth";
+let SY=null,AU=null,syncState="off",syncAt=0,pushT=null;
+try{SY=JSON.parse(Store.get(SKEY)||"null")}catch(e){}
+try{AU=JSON.parse(Store.get(AKEY)||"null")}catch(e){}
+const saveSync=()=>Store.set(SKEY,JSON.stringify(SY));
+const saveAuth=()=>AU?Store.set(AKEY,JSON.stringify(AU)):Store.del(AKEY);
+
+function syncOn(){return!!(SY&&SY.url&&SY.key&&AU&&AU.access_token)}
+function setSync(s){syncState=s;if(s==="ok")syncAt=Date.now();drawSyncCard()}
+
+async function sbAuth(body){
+  const r=await fetch(SY.url+"/auth/v1/token?grant_type="+body.grant,
+    {method:"POST",headers:{apikey:SY.key,"Content-Type":"application/json"},
+     body:JSON.stringify(body.payload)});
+  const j=await r.json();
+  if(!r.ok)throw new Error(j.error_description||j.msg||j.message||"Sign-in failed");
+  AU={access_token:j.access_token,refresh_token:j.refresh_token,uid:j.user&&j.user.id};
+  saveAuth();return AU}
+async function signIn(email,password){
+  return sbAuth({grant:"password",payload:{email,password}})}
+async function refresh(){
+  if(!AU||!AU.refresh_token)throw new Error("Not signed in");
+  return sbAuth({grant:"refresh_token",payload:{refresh_token:AU.refresh_token}})}
+
+async function sbRest(path,opts,retry){
+  const r=await fetch(SY.url+"/rest/v1/"+path,{...opts,headers:{
+    apikey:SY.key,Authorization:"Bearer "+AU.access_token,
+    "Content-Type":"application/json",...(opts&&opts.headers||{})}});
+  if(r.status===401&&!retry){await refresh();return sbRest(path,opts,true)}
+  if(!r.ok)throw new Error("Supabase "+r.status+" "+(await r.text()).slice(0,120));
+  return r.status===204?null:r.json()}
+
+async function pull(){
+  const rows=await sbRest("hours_state?select=state&limit=1",{method:"GET"});
+  return rows&&rows[0]?rows[0].state:null}
+async function push(){
+  await sbRest("hours_state?on_conflict=user_id",{method:"POST",
+    headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+    body:JSON.stringify([{user_id:AU.uid,state:S,updated_at:new Date().toISOString()}])})}
+
+function queuePush(){
+  if(!syncOn())return;
+  clearTimeout(pushT);
+  pushT=setTimeout(async()=>{
+    try{setSync("busy");await push();setSync("ok")}
+    catch(e){setSync("fail");console.warn("push",e.message)}},2500)}
+
+async function syncNow(quiet){
+  if(!syncOn())return;
+  try{
+    setSync("busy");
+    const remote=await pull();
+    if(remote&&(remote.stamp||0)>(S.stamp||0)+1000){
+      S={...structuredClone(DEF),...remote,settings:{...DEF.settings,...(remote.settings||{})}};
+      Store.set(KEY,JSON.stringify(S));_cache.clear();
+      drawSettings();render();
+      if(!quiet)pushNudge("good","Pulled from the cloud","This phone had an older copy. Updated.")}
+    else await push();
+    setSync("ok")}
+  catch(e){setSync("fail");if(!quiet)pushNudge("warn","Sync failed",e.message)}}
+
+/* first connect: decide which copy wins before anything is overwritten */
+async function connectSync(url,keyv,email,pw){
+  SY={url:url.replace(/\/+$/,""),key:keyv.trim(),email};saveSync();
+  await signIn(email,pw);
+  const remote=await pull();
+  const localDays=allKeys().length,remoteDays=remote?Object.keys(
+    (remote.shifts||[]).reduce((a,s)=>(a[s.date]=1,a),{})).length:0;
+  if(remote&&localDays>0&&remoteDays>0){
+    sheet(`<h2>Two copies</h2>
+      <div class="sh-sub">The cloud already has ${remoteDays} day${remoteDays===1?"":"s"} and this phone has ${localDays}. Pick which one to keep — the other is replaced.</div>
+      <button class="btn go wide" id="cwLocal" style="min-height:52px">Keep this phone's ${localDays} days</button>
+      <button class="btn wide" id="cwCloud" style="min-height:52px;margin-top:8px">Keep the cloud's ${remoteDays} days</button>`);
+    document.getElementById("cwLocal").onclick=async()=>{closeSheet();await push();setSync("ok");
+      pushNudge("good","Connected","This phone's copy is now the cloud copy.")};
+    document.getElementById("cwCloud").onclick=async()=>{closeSheet();
+      S={...structuredClone(DEF),...remote,settings:{...DEF.settings,...(remote.settings||{})}};
+      Store.set(KEY,JSON.stringify(S));_cache.clear();drawSettings();render();setSync("ok");
+      pushNudge("good","Connected","Pulled the cloud copy onto this phone.")};
+    return}
+  if(remote&&localDays===0){
+    S={...structuredClone(DEF),...remote,settings:{...DEF.settings,...(remote.settings||{})}};
+    Store.set(KEY,JSON.stringify(S));_cache.clear();drawSettings();render();setSync("ok");
+    return pushNudge("good","Connected","Pulled your days onto this phone.")}
+  await push();setSync("ok");
+  pushNudge("good","Connected","Backing up automatically from now on.")}
+
+function drawSyncCard(){
+  const el=document.getElementById("syncState");if(!el)return;
+  const m={off:["Not set up","var(--dimmer)"],busy:["Syncing…","var(--dim)"],
+    ok:["Backed up "+(syncAt?clock(syncAt):""),"var(--verdigris)"],
+    fail:["Last sync failed","var(--oxide)"]};
+  const[t,c]=m[syncState]||m.off;el.textContent=t;el.style.color=c;
+  const body=document.getElementById("syncBody");if(!body)return;
+  body.innerHTML=syncOn()
+    ?`<p class="mut" style="margin:0 0 12px">Signed in as ${esc(SY.email||"")}. Every change is pushed a few seconds later; the cloud copy is pulled when you open the app. Punching in still works with no signal — it catches up when you're back.</p>
+       <div class="split"><button class="btn" id="syNow">Sync now</button><button class="btn bad" id="syOff">Disconnect</button></div>`
+    :`<p class="mut" style="margin:0 0 12px">Optional. Without it your record lives only on this phone. Follow the setup guide, then paste the two values from your Supabase project below.</p>
+       <input class="noteline" id="syUrl" placeholder="Project URL — https://xxxx.supabase.co" value="${esc(SY&&SY.url||"")}" style="margin:0 0 8px">
+       <input class="noteline" id="syKey" placeholder="Anon public key" value="${esc(SY&&SY.key||"")}" style="margin:0 0 8px">
+       <input class="noteline" id="syMail" type="email" autocomplete="username" placeholder="Email" value="${esc(SY&&SY.email||"")}" style="margin:0 0 8px">
+       <input class="noteline" id="syPw" type="password" autocomplete="current-password" placeholder="Password" style="margin:0 0 10px">
+       <button class="btn go wide" id="syGo" style="min-height:50px">Connect</button>`;
+  const now=document.getElementById("syNow");
+  if(now)now.onclick=()=>syncNow();
+  const off=document.getElementById("syOff");
+  if(off)off.onclick=()=>{AU=null;saveAuth();setSync("off")};
+  const go=document.getElementById("syGo");
+  if(go)go.onclick=async()=>{
+    const u=document.getElementById("syUrl").value.trim(),
+          k=document.getElementById("syKey").value.trim(),
+          e=document.getElementById("syMail").value.trim(),
+          p=document.getElementById("syPw").value;
+    if(!u||!k||!e||!p)return pushNudge("warn","Missing something","All four fields are needed.");
+    go.textContent="Connecting…";
+    try{await connectSync(u,k,e,p)}
+    catch(x){setSync("fail");pushNudge("warn","Couldn't connect",x.message)}
+    drawSyncCard()}}
+
+/* ════════ punch by link ════════ */
+function handleLink(){
+  const q=new URLSearchParams(location.search),p=(q.get("punch")||"").toLowerCase();
+  if(!p)return;
+  const tr=q.get("t");let at=null;
+  if(tr&&/^\d{1,2}:\d{2}$/.test(tr)){at=dayStamp(key(),tr);if(at>Date.now()+MIN)at-=24*HR}
+  const s=openShift();
+  if((p==="in"||p==="on")&&!s)clockIn(at);
+  else if((p==="out"||p==="off")&&s){
+    const b=onBreak();if(b)b.out=Date.now();
+    s.out=at&&at>s.in?at:Date.now();save();
+    pushNudge("good","Clocked out",dur(worked(s),"hm")+" recorded.")}
+  history.replaceState({},"",location.pathname);}
+
+/* ════════ export ════════ */
+function dl(n,t,ty){const b=new Blob([t],{type:ty||"text/plain"}),u=URL.createObjectURL(b);
+  const a=document.createElement("a");a.href=u;a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+document.getElementById("expCsv").onclick=()=>{
+  const now=Date.now(),r=[["Date","Day","Start","Finish","Meal min","Worked h","Expected h","Balance h","Day off","Note"]];
+  allKeys().forEach(k=>{
+    const ss=shiftsOn(k).sort((a,b)=>a.in-b.in),note=(S.notes[k]||"").replace(/[",\n]/g," ");
+    if(!ss.length){r.push([k,DOW[fromKey(k).getDay()],"","","","0.00",(expectedOn(k)/HR).toFixed(2),
+      (-expectedOn(k)/HR).toFixed(2),S.offDays[k]?"yes":"",note]);return}
+    ss.forEach((s,i)=>r.push([k,DOW[fromKey(k).getDay()],clock(s.in),s.out?clock(s.out):"",
+      Math.round(mealMs(s,now)/MIN),(worked(s,now)/HR).toFixed(2),
+      i===0?(expectedOn(k)/HR).toFixed(2):"",i===0?((dayWorked(k,now)-expectedOn(k))/HR).toFixed(2):"",
+      S.offDays[k]?"yes":"",i===0?note:""]))});
+  dl("hours-"+key()+".csv",r.map(x=>x.map(c=>`"${c}"`).join(",")).join("\n"),"text/csv")};
+document.getElementById("expJson").onclick=()=>dl("hours-backup-"+key()+".json",JSON.stringify(S,null,1),"application/json");
+document.getElementById("impJson").onclick=()=>document.getElementById("fileIn").click();
+document.getElementById("fileIn").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o.shifts)throw 0;
+      S={...structuredClone(DEF),...o,settings:{...DEF.settings,...(o.settings||{})}};
+      logEdit("Restored from backup");save();drawSettings();render();
+      pushNudge("good","Restored",S.shifts.length+" days loaded.")}
+    catch(x){pushNudge("warn","That file didn't load","It needs to be an Hours backup file.")}};
+  rd.readAsText(f);e.target.value=""};
+document.getElementById("showLog").onclick=()=>{
+  sheet(`<h2>Change log</h2><div class="sh-sub">Every time a figure was corrected by hand. This is what makes the record worth trusting.</div>
+    ${S.audit.length?S.audit.map(a=>`<div style="padding:9px 0;border-bottom:1px solid var(--hair2)">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--dimmer)">${fromKey(key(new Date(a.ts))).toLocaleDateString(undefined,{day:"numeric",month:"short"})} ${clock(a.ts)}</div>
+      <div style="font-size:14px;color:var(--dim)">${esc(a.w)}</div></div>`).join("")
+      :`<p class="mut">Nothing corrected yet.</p>`}
+    <button class="btn wide" id="lgX" style="margin-top:12px">Close</button>`);
+  document.getElementById("lgX").onclick=closeSheet};
+
+/* ════════ rules ════════ */
+document.getElementById("showRules").onclick=()=>{
+  sheet(`<h2>The rules</h2><div class="sh-sub">Why the app checks what it checks.</div><div class="prose">
+    <div class="item"><h3>9–5 with no break is a full day</h3>
+      <div class="src">Employment Relations Act 2000, s69ZD</div>
+      <p>Your day is <b>hours worked</b>, not hours present. A meal break is unpaid, so it's neither part of what you're paid for nor part of what you owe. 9:00–5:00 straight through is eight hours — a full day. Take the thirty minutes and eight hours lands at 5:30. Same obligation, two finish times.</p>
+      <p>Skip the break <b>and</b> stay to 5:30 and that's 8.5 hours — the extra half hour belongs in your running total, not written off.</p></div>
+    <div class="item"><h3>Skipping it isn't an offence</h3>
+      <div class="src">Employment Relations Act 2000, ss 69ZD–69ZEB</div>
+      <p>The duty on your employer is to <b>provide</b> the break; once genuinely provided, taking it is on you. What an employer can't do is buy it off you — cash instead of a break is limited to a narrow set of essential services, and a clause reducing the entitlement has no effect.</p></div>
+    <div class="item"><h3>A bank, not a scoreboard</h3>
+      <div class="src">Arbeitszeitkonto — Germany</div>
+      <p>German workplaces run a <b>working time account</b>: hours over the daily figure accrue, short days draw down. It makes a late finish a claim on a short Friday rather than time that evaporates. That's the running total.</p></div>
+    <div class="item"><h3>48 average, 55 red line</h3>
+      <div class="src">EU Directive 2003/88/EC · WHO/ILO, 2021</div>
+      <p>The EU caps the <b>average</b> week at 48, not each week. The harder number is WHO and ILO's: <b>55+ hours</b> a week carries an estimated 35% higher stroke risk and 17% higher risk of dying from heart disease, and they attributed about 745,000 deaths in 2016 to long hours.</p></div>
+    <div class="item"><h3>Record the day, not the task</h3>
+      <div class="src">CJEU C-55/18, 2019</div>
+      <p>The ruling that reshaped European timekeeping requires an <b>objective, reliable and accessible</b> record of daily hours — start, finish, breaks. Nothing about projects. That's why corrections are logged rather than silent.</p></div>
+    <p class="mut" style="margin-top:12px">Not legal advice. For anything contested, Employment New Zealand or your union.</p>
+    </div><button class="btn wide" id="ruX" style="margin-top:12px">Close</button>`);
+  document.getElementById("ruX").onclick=closeSheet};
+
+/* ════════ settings ════════ */
+function bindSw(id,get,set){const el=document.getElementById(id);
+  const p=()=>el.setAttribute("aria-checked",String(!!get()));
+  el.onclick=async()=>{await set(!get());p();save();render()};p()}
+function drawSettings(){
+  const st=S.settings;
+  const t=document.getElementById("s-target");t.value=st.target;
+  t.onchange=()=>{st.target=Math.max(1,Math.min(16,+t.value||8));t.value=st.target;save();render()};
+  [["s-cs","usualStart"],["s-ce","usualEnd"]].forEach(([id,f])=>{
+    const e=document.getElementById(id);e.value=st[f];
+    e.onchange=()=>{if(e.value){st[f]=e.value;save()}else e.value=st[f]}});
+  const ws=document.getElementById("s-ws");ws.value=String(st.weekStart);
+  ws.onchange=()=>{st.weekStart=+ws.value;save();render()};
+  document.getElementById("s-dow").innerHTML=[1,2,3,4,5,6,0].map(d=>
+    `<button data-d="${d}" aria-pressed="${st.workDays.includes(d)}">${DOW[d].slice(0,2)}</button>`).join("");
+  document.querySelectorAll("#s-dow button").forEach(b=>b.onclick=()=>{
+    const d=+b.dataset.d;
+    st.workDays=st.workDays.includes(d)?st.workDays.filter(x=>x!==d):[...st.workDays,d].sort();
+    save();drawSettings();render()});
+  bindSw("s-meal",()=>st.mealUnpaid,v=>st.mealUnpaid=v);
+  bindSw("s-mrem",()=>st.mealRem,v=>st.mealRem=v);
+  bindSw("s-mchk",()=>st.mealChk,v=>st.mealChk=v);
+  bindSw("s-done",()=>st.doneRem,v=>st.doneRem=v);
+  bindSw("s-long",()=>st.longRem,v=>st.longRem=v);
+  bindSw("s-vib",()=>st.vibrate,v=>st.vibrate=v);
+  bindSw("s-notif",()=>st.notif,async v=>{
+    if(v&&typeof Notification!=="undefined"){
+      try{st.notif=(await Notification.requestPermission())==="granted"}catch(e){st.notif=false}}
+    else st.notif=false;noteNotif()});
+  noteNotif();
+
+  const base=location.origin+location.pathname;
+  const copy=(url,btn)=>{const b=document.getElementById(btn);b.onclick=async()=>{
+    const was=b.textContent;let ok=false;
+    try{await navigator.clipboard.writeText(url);ok=true}catch(e){}
+    b.textContent=ok?"Copied — paste into Shortcuts":url;setTimeout(()=>b.textContent=was,2600)}};
+  copy(base+"?punch=in","cpIn");copy(base+"?punch=out","cpOut");
+
+  document.getElementById("netSet").onclick=async()=>{
+    const b=document.getElementById("netSet"),was=b.textContent;b.textContent="Checking…";
+    const ip=await myIp();b.textContent=was;
+    if(!ip)return pushNudge("warn","Couldn't check","No answer from the address service.");
+    st.workNet={prefix:netPrefix(ip)};save();logEdit("Work network remembered");netCheck();
+    pushNudge("good","Saved","Anything on "+netPrefix(ip)+".x reads as work now.")};
+  document.getElementById("netFor").onclick=()=>{
+    delete st.workNet;S.netSeen={};save();netLast="off";netStatus();logEdit("Work network forgotten")};
+  netStatus();if(st.workNet)netCheck();
+  drawSyncCard();
+
+  document.getElementById("wipe").onclick=()=>{
+    sheet(`<h2>Erase everything</h2><div class="sh-sub">Every day, every setting. No undo.</div>
+      <button class="btn bad wide" id="wY" style="min-height:52px">Yes, erase it all</button>
+      <button class="btn wide" id="wN2" style="margin-top:8px">Keep it</button>`);
+    document.getElementById("wY").onclick=()=>{Store.del(KEY);Store.del(OLD);
+      S=structuredClone(DEF);save();closeSheet();drawSettings();render()};
+    document.getElementById("wN2").onclick=closeSheet};}
+function noteNotif(){
+  const n=document.getElementById("notifNote");
+  n.textContent=typeof Notification==="undefined"
+    ?"Needs the home-screen version on iPhone"
+    :Notification.permission==="denied"?"Blocked in browser settings":"Nudges outside the app";}
+
+/* ════════ tabs / boot ════════ */
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.removeAttribute("aria-current"));
+  b.setAttribute("aria-current","page");
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
+  document.getElementById("v-"+b.dataset.v).classList.add("on");window.scrollTo(0,0)});
+document.getElementById("addDay").onclick=addDay;
+
+drawSettings();handleLink();render();
+if(staleShift()&&!scrim.classList.contains("open"))resolveStale();
+netPrompt();
+if(syncOn()){setSync("busy");syncNow(true)}
+setInterval(tick,1000);
+setInterval(()=>{if(!document.hidden)render()},60000);
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden){render();netPrompt();if(syncOn())syncNow(true)}});
+</script>
+</body>
+</html>
