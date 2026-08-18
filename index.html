@@ -116,6 +116,44 @@ header.top{padding:calc(14px + env(safe-area-inset-top)) 14px 10px;max-width:520
 .stat b{display:block;font-family:var(--mono);font-size:18px;letter-spacing:-.02em}
 .stat span{font-family:var(--semi);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer)}
 
+/* ── day timeline ── */
+.tl-head{display:flex;align-items:flex-end;height:15px;margin-bottom:3px}
+.tl-head .tl-day,.tl-head .tl-run{font-family:var(--semi);font-size:9px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dimmer);text-align:right;line-height:1}
+.tl-lbl{width:40px;flex:none;font-family:var(--mono);font-size:10.5px;color:var(--dim);line-height:1.1;text-align:left}
+.tl-lbl i{display:block;font-style:normal;font-size:9px;color:var(--dimmer)}
+.tl-track{flex:1;position:relative;height:100%;min-width:0}
+.tl-day{width:42px;flex:none;text-align:right;font-family:var(--mono);font-size:11px;color:var(--bone);line-height:1.15}
+.tl-day i{display:block;font-style:normal;font-size:9.5px}
+.tl-run{width:54px;flex:none;text-align:right;position:relative;height:100%}
+.tl-run b{font-family:var(--mono);font-size:11px;font-weight:400;line-height:1.15;display:block;padding-top:4px}
+.tl-run u{position:absolute;bottom:5px;height:2px;border-radius:2px;opacity:.8}
+.tl-zero{position:absolute;bottom:3px;width:1px;height:6px;background:rgba(233,229,219,.25)}
+.tlrow{display:flex;align-items:center;height:28px;width:100%;text-align:left;
+  border-bottom:1px solid var(--hair2)}
+.tlrow:last-child{border-bottom:0}
+.tlrow.wknd{opacity:.5}
+.tlrow.today .tl-lbl{color:var(--molten)}
+.tl-scalemark{position:absolute;font-family:var(--mono);font-size:9px;color:var(--dimmer);
+  transform:translateX(-50%);bottom:0}
+.tl-grid{position:absolute;top:0;bottom:0;width:1px;background:rgba(233,229,219,.05)}
+.tl-band{position:absolute;top:0;bottom:0;background:rgba(233,229,219,.05);
+  border-left:1px solid var(--hair2);border-right:1px solid var(--hair2)}
+.tl-band.calc{border-right:1px dashed rgba(233,229,219,.32)}
+.tl-band.short{background:rgba(141,124,224,.09);border-left-color:rgba(141,124,224,.35)}
+.tl-bar{position:absolute;top:8px;height:12px;background:var(--molten);border-radius:2px;
+  box-shadow:0 0 0 1px rgba(20,22,28,.55)}
+.tl-bar.ok{background:var(--verdigris)}
+.tl-bar.lng{background:var(--oxide)}
+.tl-bar.live{border-right:2px solid var(--bone)}
+.tl-meal{position:absolute;top:8px;height:12px;background:var(--ink);opacity:.7}
+.tl-off{position:absolute;top:13px;left:0;right:0;border-top:1px dashed rgba(233,229,219,.18)}
+.tl-key{display:flex;gap:11px;flex-wrap:wrap;justify-content:center;padding-top:12px;margin-top:4px;
+  border-top:1px solid var(--hair2);font-family:var(--semi);font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--dimmer)}
+.tl-key span{display:flex;align-items:center;gap:4px}
+.tl-key i{width:9px;height:9px;border-radius:2px;display:block}
+
 .hrow{display:flex;gap:11px;align-items:center;padding:12px 0;border-bottom:1px solid var(--hair2);
   width:100%;text-align:left}
 .hrow:last-child{border-bottom:0}
@@ -187,7 +225,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="eyebrow">Time at work</div>
     <div class="brand">Hour<span>s</span></div>
   </div>
-  <div class="ver">v2.3<br><span id="storeState"></span></div>
+  <div class="ver">v2.6<br><span id="storeState"></span></div>
 </header>
 
 <!-- ══════════ TODAY ══════════ -->
@@ -213,10 +251,12 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="week" id="weekBars"></div>
     <div class="wlbl" id="weekLbls"></div>
     <div class="stats">
-      <div class="stat"><b id="stLeft">0:00</b><span id="stLeftK">To do</span></div>
-      <div class="stat"><b id="stPace">level</b><span>Vs pace</span></div>
-      <div class="stat"><b id="stBank">0:00</b><span>Running</span></div>
+      <div class="stat"><b id="stLeft">0:00</b><span id="stLeftK">Left this week</span></div>
+      <div class="stat"><b id="stPace">level</b><span>Days so far</span></div>
+      <div class="stat"><b id="stBank">0:00</b><span>Banked all up</span></div>
     </div>
+    <button id="statsHelp" style="width:100%;padding:8px 0 0;font-family:var(--semi);font-size:10px;
+      letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer)">What do these mean?</button>
     <div id="planFlag"></div>
     <div id="wkFlag"></div>
   </div>
@@ -224,6 +264,17 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
 
 <!-- ══════════ DAYS ══════════ -->
 <section class="view wrap" id="v-days">
+  <div class="card">
+    <div class="card-lbl"><span id="tlLbl">Last 14 days</span><span id="tlNav" style="display:flex;gap:6px"></span></div>
+    <div class="tl-head">
+      <span class="tl-lbl"></span>
+      <span class="tl-track" id="tlScale"></span>
+      <span class="tl-day">Day</span>
+      <span class="tl-run">Running</span>
+    </div>
+    <div id="tlRows"></div>
+    <div class="tl-key" id="tlKey"></div>
+  </div>
   <div class="card">
     <div class="card-lbl"><span>Your days</span><span class="mut" style="font-size:10px">Tap to edit</span></div>
     <button class="btn go wide" id="addDay" style="min-height:50px;margin-bottom:6px">＋ Add a day you missed</button>
@@ -249,6 +300,12 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="frow"><label>Hours a day<small>What a full day owes</small></label><input type="number" id="s-target" step="0.25" min="1" max="16"></div>
     <div class="frow"><label>Usual start<small>Only used to prefill forms</small></label><input type="time" id="s-cs"></div>
     <div class="frow"><label>Usual finish<small>Used when a day is left running</small></label><input type="time" id="s-ce"></div>
+    <div class="frow"><label>Timeline band<small id="bandNote"></small></label>
+      <select id="s-band">
+        <option value="fixed">Usual hours</option>
+        <option value="plan">Planned day</option>
+        <option value="target">Target finish</option>
+      </select></div>
     <div class="frow"><label>Week starts<small></small></label><select id="s-ws"><option value="1">Monday</option><option value="0">Sunday</option></select></div>
     <div class="frow" style="border:0;padding-bottom:0"><label>Days you work<small>The bank expects hours on these</small></label></div>
     <div class="dow" id="s-dow"></div>
@@ -287,7 +344,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <button class="btn wide" id="showRules">The rules behind the checks</button>
     <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
   </div>
-  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.3 · works offline</p>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.6 · works offline</p>
 </section>
 
 <nav class="tabs"><div class="in">
@@ -309,7 +366,7 @@ document.getElementById("storeState").textContent=Store.ok?"":"session only";
 
 const KEY="hours.v2",OLD="shiftcard.v1";
 const DEF={v:2,settings:{target:8,usualStart:"09:00",usualEnd:"17:00",workDays:[1,2,3,4,5],weekStart:1,
-  mealUnpaid:true,mealRem:true,mealChk:true,doneRem:true,longRem:true,vibrate:true,notif:false},
+  mealUnpaid:true,mealRem:true,mealChk:true,bandMode:"plan",doneRem:true,longRem:true,vibrate:true,notif:false},
   shifts:[],notes:{},offDays:{},audit:[],fired:{},ackBreak:{},netSeen:{},plan:{}};
 let S=load();
 function load(){
@@ -333,7 +390,7 @@ function load(){
     }
     return s}
   catch(e){return structuredClone(DEF)}}
-function save(){S.stamp=Date.now();Store.set(KEY,JSON.stringify(S));_cache.clear();queuePush()}
+function save(){S.stamp=Date.now();Store.set(KEY,JSON.stringify(S));_cache.clear();_run=null;queuePush()}
 
 /* ════════ time ════════ */
 const MIN=6e4,HR=36e5;
@@ -372,6 +429,24 @@ function isPlanned(k){return S.plan[k]!=null}
 function allKeys(){const s=new Set(S.shifts.map(x=>x.date));
   Object.keys(S.offDays).forEach(k=>s.add(k));Object.keys(S.notes).forEach(k=>s.add(k));
   return[...s].sort()}
+/* Running credit as at the end of any date — the same figure as "Banked all up"
+   but rewound to that day. Built in one pass and cached, because doing it per
+   row would be O(rows x days). */
+let _run=null;
+function runMap(){
+  if(_run)return _run;
+  _run=new Map();
+  const first=allKeys()[0];if(!first)return _run;
+  let acc=0;const end=key();
+  for(let d=fromKey(first);key(d)<=end;d.setDate(d.getDate()+1)){
+    const k=key(d);acc+=dayWorked(k,Date.now())-expectedOn(k);_run.set(k,acc)}
+  return _run}
+function runAt(k){const m=runMap();
+  if(m.has(k))return m.get(k);
+  /* before anything was logged, or a gap: carry the nearest earlier value */
+  let best=0;for(const[kk,v]of m){if(kk<=k)best=v;else break}
+  return best}
+
 function bank(){const t=key(),first=allKeys()[0];if(!first)return 0;let b=0;
   for(let d=fromKey(first);key(d)<t;d.setDate(d.getDate()+1)){const k=key(d);b+=dayCached(k)-expectedOn(k)}
   return b}
@@ -487,7 +562,7 @@ function render(){
   nt.onchange=()=>{const v=nt.value.trim();
     if(v)S.notes[k]=v;else delete S.notes[k];save();drawDays()};
 
-  drawWeek();drawDays();checkNudges();
+  drawWeek();drawTimeline();drawDays();checkNudges();
 }
 function tick(){
   const s=openShift(),b=onBreak();if(!s&&!b)return;
@@ -511,10 +586,15 @@ function drawWeek(){
   const ks=weekKeys(st),tgt=S.settings.target*HR;
   const w=ks.reduce((a,k)=>a+dayWorked(k,now),0);
   const owed=ks.reduce((a,k)=>a+expectedOn(k),0);
-  const byNow=ks.filter(k=>k<=t).reduce((a,k)=>a+plannedOn(k),0);
+  /* A day only counts toward pace once it's done — otherwise Wednesday morning
+     reads as nine hours behind, which is true but useless. Today joins the
+     moment you clock out. */
+  const done=ks.filter(k=>k<t||(k===t&&dayWorked(k,now)>0&&!openShift()));
+  const byNow=done.reduce((a,k)=>a+plannedOn(k),0);
+  const paceW=done.reduce((a,k)=>a+dayWorked(k,now),0);
   const planTot=ks.reduce((a,k)=>a+plannedOn(k),0);
   const planned=ks.some(isPlanned);
-  const left=owed-w,pace=w-byNow;
+  const left=owed-w,pace=paceW-byNow;
   const daysIn=ks.filter(k=>dayWorked(k,now)>0).length;
 
   document.getElementById("wkLbl").textContent=wkOff===0?"This week":wkOff===-1?"Last week":
@@ -552,7 +632,7 @@ function drawWeek(){
   const sl=document.getElementById("stLeft");
   sl.textContent=Math.abs(left)<MIN?"0:00":dur(Math.abs(left));
   sl.style.color=left>MIN?"var(--bone)":"var(--verdigris)";
-  document.getElementById("stLeftK").textContent=left>MIN?"To do":"Extra";
+  document.getElementById("stLeftK").textContent=left>MIN?"Left this week":"Extra this week";
   const sp=document.getElementById("stPace");
   sp.textContent=Math.abs(pace)<MIN?"level":signed(pace);
   sp.style.color=pace>=-MIN?"var(--verdigris)":"var(--molten)";
@@ -573,6 +653,121 @@ function drawWeek(){
       ?"Past 55 — the level WHO and ILO link to a 35% higher stroke risk."
       :"Past the 48-hour average the EU treats as the cap."}</p></div></div>`:"";
 }
+
+/* What the band means on a given row, in decimal clock hours.
+   fixed  — your usual start to your usual finish. A late arrival juts right.
+   plan   — usual start, but only as wide as that day's planned hours, so a
+            6-hour Tuesday draws a narrower band. Anchored, so lateness shows.
+   target — anchored on when you actually arrived, so the dashed right edge is
+            the time you'd need to leave to make your hours. */
+function bandFor(k,first,now){
+  const mode=S.settings.bandMode||"plan";
+  const us=hm2f(S.settings.usualStart),ue=hm2f(S.settings.usualEnd);
+  if(mode==="fixed")return{a:us,b:ue,calc:false,short:false};
+  const plan=plannedOn(k);
+  if(!plan)return null;
+  const took=first?mealMs(first,now):0;
+  const meal=(S.settings.mealUnpaid&&mealsDue(plan)>0)?Math.max(took,30*MIN):took;
+  const len=(plan+meal)/HR;
+  const short=isPlanned(k)&&plan<expectedOn(k);
+  if(mode==="target"&&first){
+    const d=new Date(first.in),f=d.getHours()+d.getMinutes()/60;
+    return{a:f,b:f+len,calc:true,short}}
+  return{a:us,b:us+len,calc:true,short}}
+
+/* ── the day timeline ── */
+let tlDays=14;
+function drawTimeline(){
+  const rowsEl=document.getElementById("tlRows");if(!rowsEl)return;
+  const now=Date.now(),t=key();
+  const ks=[];for(let i=0;i<tlDays;i++){const d=new Date();d.setDate(d.getDate()-i);ks.push(key(d))}
+
+  document.getElementById("tlLbl").textContent="Last "+tlDays+" days";
+  document.getElementById("tlNav").innerHTML=
+    `<button class="btn${tlDays===14?" go":""}" style="min-height:30px;padding:0 11px" data-tl="14">14</button>
+     <button class="btn${tlDays===28?" go":""}" style="min-height:30px;padding:0 11px" data-tl="28">28</button>`;
+  document.querySelectorAll("[data-tl]").forEach(b=>b.onclick=()=>{tlDays=+b.dataset.tl;drawTimeline()});
+
+  /* build each row first, so the axis can be fitted to bars and bands together */
+  const rows=ks.map(k=>{
+    const ss=shiftsOn(k).sort((a,b)=>a.in-b.in);
+    return{k,ss,band:bandFor(k,ss[0],now),w:dayWorked(k,now)}});
+
+  let lo=24,hi=0;
+  rows.forEach(r=>{
+    r.ss.forEach(s=>{
+      const a=new Date(s.in),b=new Date(s.out||now);
+      lo=Math.min(lo,a.getHours()+a.getMinutes()/60);
+      hi=Math.max(hi,b.getHours()+b.getMinutes()/60)});
+    if(r.band){lo=Math.min(lo,r.band.a);hi=Math.max(hi,r.band.b)}});
+  if(lo>hi){lo=hm2f(S.settings.usualStart);hi=hm2f(S.settings.usualEnd)}
+  lo=Math.floor(lo-.5);hi=Math.ceil(hi+.5);
+  if(hi-lo<8)hi=lo+8;
+  if(lo<0)lo=0;if(hi>24)hi=24;
+  const span=hi-lo,x=f=>(f-lo)/span*100;
+
+  const step=span>11?3:2;
+  let scale="",grid="";
+  for(let h=Math.ceil(lo/step)*step;h<=hi;h+=step){
+    scale+=`<span class="tl-scalemark" style="left:${x(h)}%">${pad(h)}</span>`;
+    grid+=`<div class="tl-grid" style="left:${x(h)}%"></div>`}
+  document.getElementById("tlScale").innerHTML=scale;
+
+  const vals=ks.map(k=>runAt(k));
+  const peak=Math.max(HR,...vals.map(Math.abs));
+  const half=24;
+
+  rowsEl.innerHTML=rows.map(r=>{
+    const k=r.k,d=fromKey(k),dw=d.getDay(),wknd=dw===0||dw===6;
+    const w=r.w,plan=plannedOn(k),delta=w-expectedOn(k),run=runAt(k);
+    let art=grid;
+    if(r.band&&r.band.b>r.band.a)
+      art+=`<div class="tl-band${r.band.calc?" calc":""}${r.band.short?" short":""}"
+        style="left:${x(r.band.a)}%;width:${Math.min(100-x(r.band.a),(r.band.b-r.band.a)/span*100)}%"></div>`;
+    if(S.offDays[k]&&!r.ss.length)art+=`<div class="tl-off"></div>`;
+    r.ss.forEach(s=>{
+      const a=new Date(s.in),bEnd=new Date(s.out||now);
+      const f1=a.getHours()+a.getMinutes()/60;
+      let f2=bEnd.getHours()+bEnd.getMinutes()/60;
+      if(s.out&&s.out-s.in>24*HR)f2=hi;
+      if(f2<f1)f2=hi;
+      const goal=plan||S.settings.target*HR;
+      const cls=w>=goal+2*HR?"lng":goal>0&&w>=goal*.98?"ok":"";
+      art+=`<div class="tl-bar ${cls}${s.out?"":" live"}" style="left:${x(f1)}%;width:${Math.max(1.5,(f2-f1)/span*100)}%"></div>`;
+      (s.breaks||[]).forEach(br=>{
+        const m1=new Date(br.in),m2=new Date(br.out||now);
+        const g1=m1.getHours()+m1.getMinutes()/60,g2=m2.getHours()+m2.getMinutes()/60;
+        if(g2>g1)art+=`<div class="tl-meal" style="left:${x(g1)}%;width:${(g2-g1)/span*100}%"></div>`})});
+    const bw=Math.max(1,Math.abs(run)/peak*half);
+    return `<button class="tlrow ${wknd?"wknd":""} ${k===t?"today":""}" data-day="${k}">
+      <span class="tl-lbl">${DOW[dw]}<i>${d.getDate()}/${d.getMonth()+1}</i></span>
+      <span class="tl-track">${art}</span>
+      <span class="tl-day">${S.offDays[k]&&!w?'<span style="color:var(--dimmer)">off</span>':w?dur(w):"—"}
+        <i class="${S.offDays[k]?"off":delta>=0?"pos":"neg"}">${w&&!S.offDays[k]?signed(delta):""}</i></span>
+      <span class="tl-run"><b class="${Math.abs(run)<MIN?"off":run>0?"pos":"neg"}">${Math.abs(run)<MIN?"0:00":signed(run)}</b>
+        <span class="tl-zero" style="left:${half}px"></span>
+        <u style="${run>=0?`left:${half}px`:`left:${half-bw}px`};width:${bw}px;
+          background:${run>=0?"var(--verdigris)":"var(--molten)"}"></u></span>
+    </button>`}).join("");
+  rowsEl.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>editDay(b.dataset.day));
+
+  const mode=S.settings.bandMode||"plan";
+  const bandLbl={fixed:S.settings.usualStart+"–"+S.settings.usualEnd,
+    plan:"Planned day",target:"Target finish"}[mode];
+  document.getElementById("tlKey").innerHTML=
+    `<span><i style="background:var(--verdigris)"></i>Made it</span>
+     <span><i style="background:var(--molten)"></i>Short</span>
+     <span><i style="background:var(--oxide)"></i>2h+ over</span>
+     <span><i style="background:var(--ink);box-shadow:0 0 0 1px var(--hair)"></i>Meal</span>
+     <button id="tlBand" style="display:flex;align-items:center;gap:4px;color:var(--dim);
+       font-family:var(--semi);font-size:9px;letter-spacing:.1em;text-transform:uppercase">
+       <i style="width:9px;height:9px;border-radius:2px;background:rgba(233,229,219,.14);display:block"></i>${bandLbl} ⇄</button>`;
+  document.getElementById("tlBand").onclick=()=>{
+    const order=["fixed","plan","target"];
+    S.settings.bandMode=order[(order.indexOf(mode)+1)%3];
+    save();drawSettings();drawTimeline()};
+}
+function hm2f(s){const[h,m]=String(s||"9:00").split(":").map(Number);return h+(m||0)/60}
 
 function drawDays(){
   const now=Date.now(),ks=allKeys().reverse(),el=document.getElementById("histList");
@@ -1084,6 +1279,13 @@ function drawSettings(){
   [["s-cs","usualStart"],["s-ce","usualEnd"]].forEach(([id,f])=>{
     const e=document.getElementById(id);e.value=st[f];
     e.onchange=()=>{if(e.value){st[f]=e.value;save()}else e.value=st[f]}});
+  const bm=document.getElementById("s-band");bm.value=st.bandMode||"plan";
+  const bandNotes={fixed:"Your usual start to finish, every row the same",
+    plan:"Usual start, but only as wide as that day's planned hours",
+    target:"Starts when you actually arrived — the dashed edge is when to leave"};
+  const setBandNote=()=>document.getElementById("bandNote").textContent=bandNotes[bm.value];
+  setBandNote();
+  bm.onchange=()=>{st.bandMode=bm.value;setBandNote();save();render()};
   const ws=document.getElementById("s-ws");ws.value=String(st.weekStart);
   ws.onchange=()=>{st.weekStart=+ws.value;save();render()};
   document.getElementById("s-dow").innerHTML=[1,2,3,4,5,6,0].map(d=>
@@ -1142,6 +1344,28 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
   document.getElementById("v-"+b.dataset.v).classList.add("on");window.scrollTo(0,0)});
 document.getElementById("addDay").onclick=addDay;
+
+document.getElementById("statsHelp").onclick=()=>{
+  const ks=weekKeys((()=>{const s=weekStartOf(new Date());s.setDate(s.getDate()+wkOff*7);return s})());
+  const t=key(),now=Date.now();
+  const owed=ks.reduce((a,k)=>a+expectedOn(k),0),w=ks.reduce((a,k)=>a+dayWorked(k,now),0);
+  const done=ks.filter(k=>k<t||(k===t&&dayWorked(k,now)>0&&!openShift()));
+  sheet(`<h2>The three figures</h2><div class="sh-sub">All in hours and minutes. Plus means you're up, minus means you owe.</div>
+    <div class="prose">
+      <div class="item"><h3>Left this week</h3>
+        <p>Your week owes <b>${dur(owed,"hm")}</b> and you've done <b>${dur(w,"hm")}</b>, so this is simply the difference. Once you pass the week it flips to <b>Extra this week</b> and counts up instead. Resets every ${S.settings.weekStart===1?"Monday":"Sunday"}.</p></div>
+      <div class="item"><h3>Days so far</h3>
+        <p>How your <b>finished</b> days compare with what you planned for them. Nothing but pacing — it answers "have I kept to the shape of the week".</p>
+        <p>A day only joins once you've clocked out of it, which is the fix for something I had wrong: counting today from midnight made Wednesday morning read nine hours behind, technically true and completely useless. ${done.length?"Right now it's counting "+done.length+" finished day"+(done.length===1?"":"s")+"."
+          :"No finished days in this week yet, so it's showing level."}</p></div>
+      <div class="item"><h3>Banked all up</h3>
+        <p>Every day you've ever logged, worked against owed, added up. It never resets — that's the point. A ten-hour Tuesday in August still shows in September, so a long stretch turns into a short Friday you can actually justify taking.</p>
+        <p>It deliberately stops at <b>yesterday</b>. Include today and a morning would always look like a deficit.</p></div>
+      <div class="item"><h3>Why two of them</h3>
+        <p><b>Days so far</b> is this week's shape. <b>Banked all up</b> is the long run. You can be behind on the week and well up overall, and those call for different things — the first says catch up by Friday, the second says take an afternoon.</p></div>
+    </div>
+    <button class="btn wide" id="shX" style="margin-top:12px">Close</button>`);
+  document.getElementById("shX").onclick=closeSheet};
 
 drawSettings();handleLink();render();
 if(staleShift()&&!scrim.classList.contains("open"))resolveStale();
