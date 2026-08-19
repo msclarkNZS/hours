@@ -225,7 +225,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="eyebrow">Time at work</div>
     <div class="brand">Hour<span>s</span></div>
   </div>
-  <div class="ver">v2.6<br><span id="storeState"></span></div>
+  <div class="ver">v2.8<br><span id="storeState"></span></div>
 </header>
 
 <!-- ══════════ TODAY ══════════ -->
@@ -339,12 +339,17 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="card-lbl"><span>Backup &amp; sync</span><span class="mut" id="syncState" style="font-size:10px">Not set up</span></div>
     <div id="syncBody"></div>
   </div>
+  <div class="card" id="recoverCard" style="display:none">
+    <div class="card-lbl"><span>Recovery</span><span class="mut" id="recovState" style="font-size:10px"></span></div>
+    <p class="mut" style="margin:0 0 10px" id="recovNote"></p>
+    <button class="btn wide" id="recovGo">Put the previous version back</button>
+  </div>
   <div class="card">
     <div class="card-lbl">Reference</div>
     <button class="btn wide" id="showRules">The rules behind the checks</button>
     <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
   </div>
-  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.6 · works offline</p>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.8 · works offline</p>
 </section>
 
 <nav class="tabs"><div class="in">
@@ -364,17 +369,21 @@ const Store=(()=>{let ok=false,mem={};try{localStorage.setItem("__p","1");localS
  del:k=>{try{ok?localStorage.removeItem(k):delete mem[k]}catch(e){}}}})();
 document.getElementById("storeState").textContent=Store.ok?"":"session only";
 
-const KEY="hours.v2",OLD="shiftcard.v1";
+const KEY="hours.v2",OLD="shiftcard.v1",PREV="hours.prev",BAD="hours.corrupt";
 const DEF={v:2,settings:{target:8,usualStart:"09:00",usualEnd:"17:00",workDays:[1,2,3,4,5],weekStart:1,
   mealUnpaid:true,mealRem:true,mealChk:true,bandMode:"plan",doneRem:true,longRem:true,vibrate:true,notif:false},
-  shifts:[],notes:{},offDays:{},audit:[],fired:{},ackBreak:{},netSeen:{},plan:{}};
+  shifts:[],notes:{},offDays:{},audit:[],fired:{},ackBreak:{},netSeen:{},plan:{},tomb:{}};
 let S=load();
+let loadNote=null;
 function load(){
   let raw=Store.get(KEY),migrated=false;
-  if(!raw){raw=Store.get(OLD);migrated=!!raw}
+  /* Only ever read the old Shift Card data if v2 has never been written. Without
+     this guard a missing v2 key silently resurrects months-old state. */
+  if(!raw&&!Store.get("hours.v2.seen")){raw=Store.get(OLD);migrated=!!raw}
   if(!raw)return structuredClone(DEF);
   try{
     const o=JSON.parse(raw);
+    if(!o||typeof o!=="object"||!Array.isArray(o.shifts))throw new Error("shape");
     const s={...structuredClone(DEF),...o,settings:{...DEF.settings,...(o.settings||{})}};
     if(migrated){
       /* v1 kept a note per shift and tracked rest breaks; notes move to the day
@@ -388,9 +397,19 @@ function load(){
       s.settings.usualEnd=o.settings&&o.settings.coreEnd||DEF.settings.usualEnd;
       s.v=2;
     }
+    const fixes=repair(s);
+    if(fixes.length)loadNote=fixes;
     return s}
-  catch(e){return structuredClone(DEF)}}
-function save(){S.stamp=Date.now();Store.set(KEY,JSON.stringify(S));_cache.clear();_run=null;queuePush()}
+  catch(e){
+    /* never quietly reset to empty — keep the bad copy so it can be recovered */
+    Store.set(BAD,raw);
+    loadNote=["couldn't read the saved record, so it's been set aside — Setup has a recovery button"];
+    return structuredClone(DEF)}}
+/* saveLocal is for housekeeping the cloud doesn't need to hear about — dismissed
+   nudges, network sightings. It deliberately doesn't bump the stamp, so an idle
+   tab can't win a merge on the strength of its own bookkeeping. */
+function saveLocal(){Store.set("hours.v2.seen","1");Store.set(KEY,JSON.stringify(S));_cache.clear();_run=null}
+function save(){S.stamp=Date.now();saveLocal();queuePush()}
 
 /* ════════ time ════════ */
 const MIN=6e4,HR=36e5;
@@ -427,7 +446,8 @@ function expectedOn(k){return S.offDays[k]?0:
 function plannedOn(k){const p=S.plan[k];return p==null?expectedOn(k):Math.max(0,p)*HR}
 function isPlanned(k){return S.plan[k]!=null}
 function allKeys(){const s=new Set(S.shifts.map(x=>x.date));
-  Object.keys(S.offDays).forEach(k=>s.add(k));Object.keys(S.notes).forEach(k=>s.add(k));
+  Object.keys(S.offDays).forEach(k=>{if(S.offDays[k])s.add(k)});
+  Object.keys(S.notes).forEach(k=>{if(S.notes[k])s.add(k)});
   return[...s].sort()}
 /* Running credit as at the end of any date — the same figure as "Banked all up"
    but rewound to that day. Built in one pass and cached, because doing it per
@@ -455,6 +475,9 @@ function weekStartOf(d){const x=new Date(d),diff=(x.getDay()-S.settings.weekStar
 function weekKeys(st){const o=[];for(let i=0;i<7;i++){const d=new Date(st);d.setDate(d.getDate()+i);o.push(key(d))}return o}
 /* s69ZD: a meal break is due once the work period passes four hours */
 function mealsDue(ms){const h=ms/HR;if(h<=4)return 0;return h>12?2:1}
+/* A deleted shift needs a gravestone. Without one, the other device still has
+   it, pushes, and a union merge quietly resurrects it. */
+function tomb(id){S.tomb=S.tomb||{};S.tomb[String(id)]=Date.now()}
 function logEdit(w){S.audit.unshift({ts:Date.now(),w});S.audit=S.audit.slice(0,60)}
 function finishBy(s,now,tgt){tgt=tgt||S.settings.target*HR;
   const owed=(S.settings.mealUnpaid&&mealsDue(tgt)>0&&mealMs(s,now)<29*MIN)?30*MIN:0;
@@ -489,7 +512,7 @@ function pushNudge(kind,title,body,notify,act){
 function fireNotify(t,b){if(!S.settings.notif||typeof Notification==="undefined")return;
   if(Notification.permission!=="granted")return;try{new Notification("Hours · "+t,{body:b,tag:t})}catch(e){}}
 function once(id,fn){const k=key();S.fired[k]=S.fired[k]||{};
-  if(S.fired[k][id])return;S.fired[k][id]=1;save();fn()}
+  if(S.fired[k][id])return;S.fired[k][id]=1;saveLocal();fn()}
 function drawNudges(){
   const el=document.getElementById("nudges");
   el.innerHTML=live.map(n=>`<div class="nudge ${n.kind}"><div style="flex:1"><b>${n.title}</b><p>${n.body}</p>
@@ -560,7 +583,7 @@ function render(){
   const nt=document.getElementById("todayNote");
   if(document.activeElement!==nt)nt.value=S.notes[k]||"";
   nt.onchange=()=>{const v=nt.value.trim();
-    if(v)S.notes[k]=v;else delete S.notes[k];save();drawDays()};
+    S.notes[k]=v;save();drawDays()};
 
   drawWeek();drawTimeline();drawDays();checkNudges();
 }
@@ -863,7 +886,7 @@ function openCloseout(s){
       save();paint();render()});
     document.getElementById("coGo").onclick=()=>{
       const v=document.getElementById("coN").value.trim();
-      if(v)S.notes[k]=v;else delete S.notes[k];
+      S.notes[k]=v;
       save();closeSheet();render()};};
   paint();}
 
@@ -888,7 +911,7 @@ function resolveStale(then){
   document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>fin(+b.dataset.f));
   document.getElementById("stGo").onclick=()=>{const v=document.getElementById("stT").value;if(v)fin(dayStamp(k,v))};
   document.getElementById("stD").onclick=()=>{
-    S.shifts=S.shifts.filter(x=>x.id!==s.id);logEdit(k+" open day removed");
+    tomb(s.id);S.shifts=S.shifts.filter(x=>x.id!==s.id);logEdit(k+" open day removed");
     save();closeSheet();render();if(then)then()};}
 
 /* the week planner */
@@ -946,7 +969,7 @@ function openPlan(ks){
     document.getElementById("plReset").onclick=()=>{ks.forEach(k=>draft[k]=expectedOn(k)/HR);paint()};
     document.getElementById("plGo").onclick=()=>{
       ks.forEach(k=>{
-        if(Math.abs(draft[k]*HR-expectedOn(k))<MIN)delete S.plan[k];
+        if(Math.abs(draft[k]*HR-expectedOn(k))<MIN)S.plan[k]=null;
         else S.plan[k]=draft[k]});
       logEdit("Week of "+ks[0]+" planned");save();closeSheet();render()};};
   paint();}
@@ -985,7 +1008,7 @@ function addDay(){
     const r=read();
     S.shifts.push({id:Date.now(),date:r.k,in:r.a,out:r.b,
       breaks:r.m>0?[{in:r.a+Math.round((r.b-r.a)/2),out:r.a+Math.round((r.b-r.a)/2)+r.m*MIN,type:"meal"}]:[]});
-    delete S.offDays[r.k];
+    S.offDays[r.k]=false;
     const n=document.getElementById("adN").value.trim();if(n)S.notes[r.k]=n;
     logEdit(r.k+" added by hand · "+dur(r.w,"hm"));save();closeSheet();render();
     pushNudge("good","Day added",r.k+" now shows "+dur(r.w,"hm")+".")};
@@ -1022,10 +1045,11 @@ function editDay(k){
         s.breaks=m>0?[{in:mid,out:mid+m*MIN,type:"meal"}]:[];logEdit(k+" meal set to "+m+"m")}
       save();paint();render()});
     document.querySelectorAll("#edS [data-del]").forEach(b=>b.onclick=()=>{
-      S.shifts=S.shifts.filter(x=>x.id!=b.dataset.del);logEdit(k+" block deleted");save();paint();render()});
+      tomb(b.dataset.del);S.shifts=S.shifts.filter(x=>x.id!=b.dataset.del);
+      logEdit(k+" block deleted");save();paint();render()});
     document.getElementById("edOff").onclick=ev=>{
       const on=ev.currentTarget.getAttribute("aria-checked")==="true";
-      if(on)delete S.offDays[k];else S.offDays[k]=true;
+      S.offDays[k]=!on;
       logEdit(k+(on?" no longer a day off":" marked a day off"));save();paint();render()};
     document.getElementById("edAdd").onclick=()=>{
       const t=dayStamp(k,S.settings.usualStart);
@@ -1033,7 +1057,7 @@ function editDay(k){
       logEdit(k+" block added");save();paint();render()};
     document.getElementById("edGo").onclick=()=>{
       const v=document.getElementById("edN").value.trim();
-      if(v)S.notes[k]=v;else delete S.notes[k];
+      S.notes[k]=v;
       save();closeSheet();render()};};
   paint();}
 
@@ -1051,7 +1075,7 @@ async function netCheck(){
   if(!ip){netLast="unknown";netStatus();return netLast}
   netLast=netPrefix(ip)===S.settings.workNet.prefix?"on":"away";
   if(netLast==="on"){const k=key(),e=S.netSeen[k]||(S.netSeen[k]={first:Date.now()});
-    e.last=Date.now();save()}
+    e.last=Date.now();saveLocal()}
   netStatus();return netLast}
 function netStatus(){
   const el=document.getElementById("netState");if(!el)return;
@@ -1114,10 +1138,20 @@ async function sbRest(path,opts,retry){
 async function pull(){
   const rows=await sbRest("hours_state?select=state&limit=1",{method:"GET"});
   return rows&&rows[0]?rows[0].state:null}
+/* Read-modify-write. The old blind push let a tab that had been sitting open
+   since this morning overwrite the cloud with its stale copy the moment any
+   background save fired. */
 async function push(){
+  let body=S;
+  try{const remote=await pull();
+    if(remote){const m=mergeState(S,remote);
+      if(JSON.stringify(m.shifts)!==JSON.stringify(S.shifts)){
+        S=m;repair(S);Store.set(KEY,JSON.stringify(S));_cache.clear();_run=null;render()}
+      body=S}}
+  catch(e){/* offline: push what we have, the merge on the far side still applies */}
   await sbRest("hours_state?on_conflict=user_id",{method:"POST",
     headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
-    body:JSON.stringify([{user_id:AU.uid,state:S,updated_at:new Date().toISOString()}])})}
+    body:JSON.stringify([{user_id:AU.uid,state:body,updated_at:new Date().toISOString()}])})}
 
 function queuePush(){
   if(!syncOn())return;
@@ -1131,12 +1165,18 @@ async function syncNow(quiet){
   try{
     setSync("busy");
     const remote=await pull();
-    if(remote&&(remote.stamp||0)>(S.stamp||0)+1000){
-      S={...structuredClone(DEF),...remote,settings:{...DEF.settings,...(remote.settings||{})}};
-      Store.set(KEY,JSON.stringify(S));_cache.clear();
+    const before=JSON.stringify(S.shifts);
+    const merged=mergeState(S,remote);
+    const changed=JSON.stringify(merged.shifts)!==before;
+    if(changed){
+      Store.set(PREV,JSON.stringify(S));          /* one step of undo, always */
+      S=merged;repair(S);
+      Store.set(KEY,JSON.stringify(S));_cache.clear();_run=null;
       drawSettings();render();
-      if(!quiet)pushNudge("good","Pulled from the cloud","This phone had an older copy. Updated.")}
-    else await push();
+      if(!quiet)pushNudge("good","Merged with the cloud",
+        "Picked up days this phone didn't have. Nothing of yours was replaced — "+
+        "Setup has an undo if it looks wrong.")}
+    await push();
     setSync("ok")}
   catch(e){setSync("fail");if(!quiet)pushNudge("warn","Sync failed",e.message)}}
 
@@ -1174,7 +1214,13 @@ function drawSyncCard(){
   const[t,c]=m[syncState]||m.off;el.textContent=t;el.style.color=c;
   const body=document.getElementById("syncBody");if(!body)return;
   body.innerHTML=syncOn()
-    ?`<p class="mut" style="margin:0 0 12px">Signed in as ${esc(SY.email||"")}. Every change is pushed a few seconds later; the cloud copy is pulled when you open the app. Punching in still works with no signal — it catches up when you're back.</p>
+    ?`<p class="mut" style="margin:0 0 10px">Signed in as ${esc(SY.email||"")}. Changes merge rather than overwrite, so two devices can't flatten each other. Punching in works with no signal and catches up later.</p>
+       <div style="font-family:var(--mono);font-size:11px;color:var(--dimmer);
+         border:1px solid var(--hair2);border-radius:3px;padding:9px 10px;margin-bottom:10px;line-height:1.6">
+         this device &nbsp;${S.stamp?new Date(S.stamp).toLocaleString(undefined,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}<br>
+         cloud copy &nbsp;&nbsp;&nbsp;<span id="syRemote">tap Sync now</span><br>
+         days held &nbsp;&nbsp;&nbsp;&nbsp;${allKeys().length}
+       </div>
        <div class="split"><button class="btn" id="syNow">Sync now</button><button class="btn bad" id="syOff">Disconnect</button></div>`
     :`<p class="mut" style="margin:0 0 12px">Optional. Without it your record lives only on this phone. Follow the setup guide, then paste the two values from your Supabase project below.</p>
        <input class="noteline" id="syUrl" placeholder="Project URL — https://xxxx.supabase.co" value="${esc(SY&&SY.url||"")}" style="margin:0 0 8px">
@@ -1183,7 +1229,13 @@ function drawSyncCard(){
        <input class="noteline" id="syPw" type="password" autocomplete="current-password" placeholder="Password" style="margin:0 0 10px">
        <button class="btn go wide" id="syGo" style="min-height:50px">Connect</button>`;
   const now=document.getElementById("syNow");
-  if(now)now.onclick=()=>syncNow();
+  if(now)now.onclick=async()=>{
+    await syncNow();
+    try{const r=await pull();const el=document.getElementById("syRemote");
+      if(el)el.textContent=r&&r.stamp
+        ?new Date(r.stamp).toLocaleString(undefined,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})
+          +"  ·  "+((r.shifts||[]).length)+" shifts"
+        :"empty"}catch(e){}};
   const off=document.getElementById("syOff");
   if(off)off.onclick=()=>{AU=null;saveAuth();setSync("off")};
   const go=document.getElementById("syGo");
@@ -1197,6 +1249,80 @@ function drawSyncCard(){
     try{await connectSync(u,k,e,p)}
     catch(x){setSync("fail");pushNudge("warn","Couldn't connect",x.message)}
     drawSyncCard()}}
+
+/* Merge, never replace. The old code swapped the whole state for the cloud copy
+   whenever the cloud's clock looked later, so one stale context pushing after
+   you'd clocked out could resurrect a finished shift. Wall-clock stamps can't
+   decide that safely, so the shifts are reconciled record by record and a
+   completed shift always beats an open one. */
+function pickShift(a,b){
+  if(a.out&&!b.out)return a;
+  if(!a.out&&b.out)return b;
+  if(a.out&&b.out)return b.out>a.out?b:a;
+  return b.in>a.in?b:a}
+function dedupeShifts(list){
+  const out=[];
+  list.slice().sort((a,b)=>a.in-b.in).forEach(s=>{
+    const i=out.findIndex(o=>o.date===s.date&&s.in<(o.out||o.in+MIN)&&(s.out||s.in+MIN)>o.in);
+    if(i<0)out.push(s);else out[i]=pickShift(out[i],s)});
+  return out}
+function mergeState(local,remote){
+  if(!remote)return local;
+  /* Symmetric: whichever copy was written later wins the scalar fields, so the
+     result is the same whichever device runs the merge. Shifts are resolved by
+     rule rather than by clock, because a stale device's clock is still current. */
+  const newer=(local.stamp||0)>=(remote.stamp||0)?local:remote;
+  const older=newer===local?remote:local;
+  const out={...structuredClone(DEF),...older,...newer,
+    settings:{...DEF.settings,...(older.settings||{}),...(newer.settings||{})}};
+  const graves={...(older.tomb||{}),...(newer.tomb||{})};
+  const byId=new Map();
+  [...(older.shifts||[]),...(newer.shifts||[])].forEach(s=>{
+    if(!s||!s.in)return;
+    if(graves[String(s.id)])return;                 /* stays buried */
+    byId.set(s.id,byId.has(s.id)?pickShift(byId.get(s.id),s):s)});
+  out.shifts=dedupeShifts([...byId.values()]);
+  out.tomb=graves;
+  /* per-key union, later copy on top — an explicit blank counts as a value, so
+     clearing a note or a plan on one device carries to the other */
+  ["notes","offDays","plan","ackBreak","netSeen","fired"].forEach(f=>
+    out[f]={...(older[f]||{}),...(newer[f]||{})});
+  const am=new Map();
+  [...(older.audit||[]),...(newer.audit||[])].forEach(a=>a&&am.set(a.ts,a));
+  out.audit=[...am.values()].sort((a,b)=>b.ts-a.ts).slice(0,60);
+  out.stamp=Math.max(local.stamp||0,remote.stamp||0);
+  return out}
+
+/* Impossible states, repaired on load and written to the change log so you can
+   see it happened rather than wondering why a day moved. */
+function repair(s){
+  const notes=[];
+  const open=(s.shifts||[]).filter(x=>!x.out);
+  /* a date that has a finished shift can't also have an unfinished one */
+  const byDate={};
+  (s.shifts||[]).forEach(x=>(byDate[x.date]=byDate[x.date]||[]).push(x));
+  Object.keys(byDate).forEach(d=>{
+    const a=byDate[d];
+    if(a.some(x=>x.out)&&a.some(x=>!x.out)){
+      const drop=a.filter(x=>!x.out);
+      s.shifts=s.shifts.filter(x=>!drop.includes(x));
+      notes.push(d+": removed "+drop.length+" leftover open shift on a day already finished")}});
+  /* only one day can be running at a time — keep the most recent */
+  const still=(s.shifts||[]).filter(x=>!x.out).sort((a,b)=>b.in-a.in);
+  if(still.length>1){
+    still.slice(1).forEach(x=>{
+      const t=x.date===key()?Date.now():dayStamp(x.date,s.settings.usualEnd||"17:00");
+      x.out=Math.max(t,x.in+MIN);
+      notes.push(x.date+": second running day closed at "+clock(x.out))});
+  }
+  const before=(s.shifts||[]).length;
+  s.shifts=dedupeShifts(s.shifts||[]);
+  if(s.shifts.length<before)notes.push("removed "+(before-s.shifts.length)+" overlapping duplicate shift(s)");
+  if(notes.length){
+    s.audit=s.audit||[];
+    notes.forEach(w=>s.audit.unshift({ts:Date.now(),w:"Auto-repair — "+w}));
+    s.audit=s.audit.slice(0,60)}
+  return notes}
 
 /* ════════ punch by link ════════ */
 function handleLink(){
@@ -1324,6 +1450,29 @@ function drawSettings(){
   netStatus();if(st.workNet)netCheck();
   drawSyncCard();
 
+  const prev=Store.get(PREV),bad=Store.get(BAD);
+  const rc=document.getElementById("recoverCard");
+  if(prev||bad){
+    rc.style.display="";
+    let n=0,when="";
+    try{const o=JSON.parse(prev||bad);n=(o.shifts||[]).length;
+      when=o.stamp?new Date(o.stamp).toLocaleString(undefined,{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):""}
+    catch(e){}
+    document.getElementById("recovState").textContent=bad?"Unreadable copy set aside":"One step back available";
+    document.getElementById("recovNote").textContent=bad
+      ?"A saved copy couldn't be read and was set aside rather than thrown away. It holds "+n+" days. Putting it back may or may not work — export a backup first."
+      :"Before the last merge with the cloud, this phone held "+n+" day"+(n===1?"":"s")+
+       (when?", last changed "+when:"")+". Use this if a sync brought something back that shouldn't have.";
+    document.getElementById("recovGo").onclick=()=>{
+      const raw=prev||bad;if(!raw)return;
+      Store.set(PREV,JSON.stringify(S));
+      try{const o=JSON.parse(raw);
+        S={...structuredClone(DEF),...o,settings:{...DEF.settings,...(o.settings||{})}};
+        repair(S);Store.del(BAD);save();drawSettings();render();
+        pushNudge("good","Put back","Restored "+(S.shifts||[]).length+" days. Export a backup now.")}
+      catch(e){pushNudge("warn","Couldn't restore",e.message)}};
+  } else rc.style.display="none";
+
   document.getElementById("wipe").onclick=()=>{
     sheet(`<h2>Erase everything</h2><div class="sh-sub">Every day, every setting. No undo.</div>
       <button class="btn bad wide" id="wY" style="min-height:52px">Yes, erase it all</button>
@@ -1370,9 +1519,13 @@ document.getElementById("statsHelp").onclick=()=>{
 drawSettings();handleLink();render();
 if(staleShift()&&!scrim.classList.contains("open"))resolveStale();
 netPrompt();
+if(loadNote){
+  pushNudge("warn","Tidied up the record",
+    loadNote.join(" · ")+". The change log in Days has the detail.");
+  save()}
 if(syncOn()){setSync("busy");syncNow(true)}
 setInterval(tick,1000);
-setInterval(()=>{if(!document.hidden)render()},60000);
+setInterval(()=>{if(!document.hidden){render();if(syncOn())syncNow(true)}},60000);
 document.addEventListener("visibilitychange",()=>{
   if(!document.hidden){render();netPrompt();if(syncOn())syncNow(true)}});
 </script>
