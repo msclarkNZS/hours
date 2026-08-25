@@ -225,7 +225,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="eyebrow">Time at work</div>
     <div class="brand">Hour<span>s</span></div>
   </div>
-  <div class="ver">v2.8<br><span id="storeState"></span></div>
+  <div class="ver">v2.9<br><span id="storeState"></span></div>
 </header>
 
 <!-- ══════════ TODAY ══════════ -->
@@ -278,6 +278,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
   <div class="card">
     <div class="card-lbl"><span>Your days</span><span class="mut" style="font-size:10px">Tap to edit</span></div>
     <button class="btn go wide" id="addDay" style="min-height:50px;margin-bottom:6px">＋ Add a day you missed</button>
+    <div id="leaveTally"></div>
     <div id="histList"></div>
   </div>
   <div class="card">
@@ -349,7 +350,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <button class="btn wide" id="showRules">The rules behind the checks</button>
     <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
   </div>
-  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.8 · works offline</p>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.9 · works offline</p>
 </section>
 
 <nav class="tabs"><div class="in">
@@ -438,6 +439,20 @@ function dayCached(k){if(_stamp!==key()){_cache.clear();_stamp=key()}
   const v=dayWorked(k);
   if(k!==key()&&!shiftsOn(k).some(s=>!s.out))_cache.set(k,v);
   return v}
+const LEAVE={annual:"Annual leave",sick:"Sick day",stat:"Public holiday",other:"Day off"};
+const LEAVECOL={annual:"var(--verdigris)",sick:"var(--oxide)",stat:"var(--violet)",other:"var(--dimmer)"};
+function leaveOf(k){const v=S.offDays[k];
+  return v?(typeof v==="string"&&LEAVE[v]?v:"other"):null}
+function leaveName(k){const l=leaveOf(k);return l?LEAVE[l]:null}
+/* how much leave has been used in a calendar year, for the tally on Days */
+function leaveTally(year){
+  const out={annual:0,sick:0,stat:0,other:0};
+  Object.keys(S.offDays).forEach(k=>{
+    if(!S.offDays[k])return;
+    if(+k.slice(0,4)!==year)return;
+    if(!S.settings.workDays.includes(fromKey(k).getDay()))return;
+    out[leaveOf(k)]++});
+  return out}
 function expectedOn(k){return S.offDays[k]?0:
   (S.settings.workDays.includes(fromKey(k).getDay())?S.settings.target*HR:0)}
 /* What you mean to do on a given date. Absent a plan this is just your normal
@@ -552,15 +567,19 @@ function render(){
   document.getElementById("todayLbl").textContent=DOW[new Date().getDay()]+" "+
     fromKey(k).toLocaleDateString(undefined,{day:"numeric",month:"short"})+
     (isPlanned(k)?" · planned "+dur(plan,"hm"):"");
+  const lvNow=leaveName(k);
   document.getElementById("statusPill").innerHTML=b?`<span class="pill brk"><i></i>On break</span>`
-    :s?`<span class="pill on"><i></i>On the clock</span>`:`<span class="pill off"><i></i>Off</span>`;
+    :s?`<span class="pill on"><i></i>On the clock</span>`
+    :lvNow?`<span class="pill off" style="color:${LEAVECOL[leaveOf(k)]}"><i></i>${lvNow}</span>`
+    :`<span class="pill off"><i></i>Off</span>`;
   const ro=document.getElementById("readout");
   if(b){ro.className="readout brk";ro.innerHTML=dur(now-b.in)+"<small>break</small>"}
   else{ro.className="readout"+(s?" on":"");ro.innerHTML=dur(w)+"<small>hrs</small>"}
   document.getElementById("readSub").textContent=
     b?"Back when you're ready · "+dur(w,"hm")+" worked"
     :s?"In at "+clock(s.in)+" · "+(plan?"done at "+clock(finishBy(s,now,plan)):"nothing planned today")
-    :w>0?"Done for today · "+dur(w,"hm"):"Not on the clock";
+    :w>0?"Done for today · "+dur(w,"hm")
+    :lvNow?lvNow+" — nothing expected today":"Not on the clock";
   const bar=document.getElementById("progBar");
   bar.style.width=Math.min(100,w/tgt*100)+"%";bar.className=w>=tgt?"done":"";
   document.getElementById("progL").textContent=dur(w,"hm");
@@ -571,7 +590,10 @@ function render(){
   pb.onclick=s?clockOut:()=>clockIn();
 
   const br=document.getElementById("btnRow");
-  if(!s)br.innerHTML=`<button class="btn" id="adj">Been here a while? Set an earlier start</button>`;
+  const lvToday=leaveName(k);
+  if(!s)br.innerHTML=`<button class="btn" id="adj">Been here a while? Set an earlier start</button>`
+    +`<button class="btn" id="lv" style="${lvToday?"color:"+LEAVECOL[leaveOf(k)]+";border-color:"+LEAVECOL[leaveOf(k)]:""}">${
+      lvToday?lvToday+" today · change":"Sick or on leave today?"}</button>`;
   else if(b)br.innerHTML=`<button class="btn v" id="bEnd">Back from break — ${dur(now-b.in)}</button>`
     +`<button class="btn" id="adj">In at ${clock(s.in)} · adjust</button>`;
   else br.innerHTML=`<button class="btn v" id="bGo">Meal break${mealMs(s,now)>MIN?" · "+dur(mealMs(s,now))+" so far":" · 30m"}</button>`
@@ -579,6 +601,7 @@ function render(){
   const g=document.getElementById("bGo"),e=document.getElementById("bEnd");
   if(g)g.onclick=startBreak; if(e)e.onclick=endBreak;
   document.getElementById("adj").onclick=startSheet;
+  const lvb=document.getElementById("lv");if(lvb)lvb.onclick=()=>leaveSheet(key());
 
   const nt=document.getElementById("todayNote");
   if(document.activeElement!==nt)nt.value=S.notes[k]||"";
@@ -747,7 +770,8 @@ function drawTimeline(){
     if(r.band&&r.band.b>r.band.a)
       art+=`<div class="tl-band${r.band.calc?" calc":""}${r.band.short?" short":""}"
         style="left:${x(r.band.a)}%;width:${Math.min(100-x(r.band.a),(r.band.b-r.band.a)/span*100)}%"></div>`;
-    if(S.offDays[k]&&!r.ss.length)art+=`<div class="tl-off"></div>`;
+    if(S.offDays[k]&&!r.ss.length)
+      art+=`<div class="tl-off" style="border-top-color:${LEAVECOL[leaveOf(k)]};opacity:.5"></div>`;
     r.ss.forEach(s=>{
       const a=new Date(s.in),bEnd=new Date(s.out||now);
       const f1=a.getHours()+a.getMinutes()/60;
@@ -765,7 +789,8 @@ function drawTimeline(){
     return `<button class="tlrow ${wknd?"wknd":""} ${k===t?"today":""}" data-day="${k}">
       <span class="tl-lbl">${DOW[dw]}<i>${d.getDate()}/${d.getMonth()+1}</i></span>
       <span class="tl-track">${art}</span>
-      <span class="tl-day">${S.offDays[k]&&!w?'<span style="color:var(--dimmer)">off</span>':w?dur(w):"—"}
+      <span class="tl-day">${S.offDays[k]&&!w?`<span style="color:${LEAVECOL[leaveOf(k)]};font-size:9.5px">${
+        {annual:"leave",sick:"sick",stat:"stat",other:"off"}[leaveOf(k)]}</span>`:w?dur(w):"—"}
         <i class="${S.offDays[k]?"off":delta>=0?"pos":"neg"}">${w&&!S.offDays[k]?signed(delta):""}</i></span>
       <span class="tl-run"><b class="${Math.abs(run)<MIN?"off":run>0?"pos":"neg"}">${Math.abs(run)<MIN?"0:00":signed(run)}</b>
         <span class="tl-zero" style="left:${half}px"></span>
@@ -804,11 +829,17 @@ function drawDays(){
       +(meal>MIN?"  ·  "+Math.round(meal/MIN)+"m meal":""):"—";
     return `<button class="hrow" data-day="${k}">
       <span class="hdate">${DOW[d.getDay()]}<b>${d.getDate()}/${d.getMonth()+1}</b></span>
-      <span class="hmid"><b>${off?"Day off":dur(w,"hm")}${open?'<span class="tag">open</span>':""}</b>
+      <span class="hmid"><b>${off?`<span style="color:${LEAVECOL[leaveOf(k)]}">${leaveName(k)}</span>`:dur(w,"hm")}${open?'<span class="tag">open</span>':""}</b>
         <span${note?' class="note"':""}>${note?esc(note):times}</span></span>
       <span class="hdelta ${off?"off":delta>=0?"pos":"neg"}">${off?"—":Math.abs(delta)<MIN?"0:00":signed(delta)}</span>
     </button>`}).join("");
-  el.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>editDay(b.dataset.day));}
+  el.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>editDay(b.dataset.day));
+  const yr=new Date().getFullYear(),tal=leaveTally(yr);
+  const parts=["annual","sick","stat"].filter(t=>tal[t]).map(t=>
+    `<span style="color:${LEAVECOL[t]}">${tal[t]}</span> ${LEAVE[t].toLowerCase()}`);
+  document.getElementById("leaveTally").innerHTML=parts.length
+    ?`<div class="mut" style="text-align:center;padding:2px 0 10px;font-size:12.5px">
+       ${yr} so far — ${parts.join(" · ")}</div>`:"";}
 function esc(s){return String(s).replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]))}
 
 /* ════════ sheets ════════ */
@@ -974,6 +1005,74 @@ function openPlan(ks){
       logEdit("Week of "+ks[0]+" planned");save();closeSheet();render()};};
   paint();}
 
+/* mark leave — today, or a run of days for a booked holiday */
+function leaveSheet(k0){
+  const k=k0||key();
+  let type=leaveOf(k)||"annual";
+  let until=k;
+  const paint=()=>{
+    const days=[];
+    for(let d=fromKey(k);key(d)<=until;d.setDate(d.getDate()+1)){
+      const kk=key(d);
+      if(S.settings.workDays.includes(fromKey(kk).getDay()))days.push(kk)}
+    const owed=days.reduce((a,kk)=>a+(S.settings.workDays.includes(fromKey(kk).getDay())?S.settings.target*HR:0),0);
+    const existing=leaveOf(k);
+    sheet(`<h2>${k===key()?"Not working today":"Leave"}</h2>
+      <div class="sh-sub">${fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}${
+        until!==k?" → "+fromKey(until).toLocaleDateString(undefined,{day:"numeric",month:"long"}):""}
+        · nothing will be expected, so it won't dent your running total.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        ${["annual","sick","stat","other"].map(t=>
+          `<button class="btn" data-t="${t}" style="min-height:48px;${t===type
+            ?"color:"+LEAVECOL[t]+";border-color:"+LEAVECOL[t]+";background:rgba(233,229,219,.05)":""}">${LEAVE[t]}</button>`).join("")}
+      </div>
+      <div class="frow"><label>Through<small>Leave as today for a single day</small></label>
+        <input type="date" id="lvTo" value="${until}" min="${k}"></div>
+      <div class="mut" style="text-align:center;padding:12px 0 10px">
+        ${days.length} work day${days.length===1?"":"s"} · ${dur(owed,"hm")} not expected</div>
+      <button class="btn go wide" id="lvGo" style="min-height:52px">${existing?"Update":"Mark as "+LEAVE[type].toLowerCase()}</button>
+      ${existing?`<button class="btn bad wide" id="lvClear" style="margin-top:8px">Remove the leave</button>`:""}
+      <button class="btn wide" id="lvX" style="margin-top:8px">Cancel</button>`);
+    document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{type=b.dataset.t;paint()});
+    document.getElementById("lvTo").onchange=e=>{until=e.target.value||k;if(until<k)until=k;paint()};
+    document.getElementById("lvGo").onclick=()=>{
+      days.forEach(kk=>S.offDays[kk]=type);
+      logEdit(days.length>1?days[0]+" → "+days[days.length-1]+" marked "+LEAVE[type].toLowerCase()
+        :k+" marked "+LEAVE[type].toLowerCase());
+      save();closeSheet();render();
+      pushNudge("good",LEAVE[type],days.length>1
+        ?days.length+" days marked. Nothing is expected on any of them."
+        :"Marked. Nothing expected today.")};
+    const cl=document.getElementById("lvClear");
+    if(cl)cl.onclick=()=>{S.offDays[k]=false;logEdit(k+" leave removed");save();closeSheet();render()};
+    document.getElementById("lvX").onclick=closeSheet;};
+  paint();}
+
+/* delete an entire day, with a look at what goes */
+function deleteDay(k,then){
+  const ss=shiftsOn(k),w=dayWorked(k),note=S.notes[k],lv=leaveName(k);
+  const bits=[];
+  if(ss.length)bits.push(ss.length+" block"+(ss.length===1?"":"s")+" totalling "+dur(w,"hm"));
+  if(note)bits.push("the note \u201c"+esc(note.slice(0,40))+(note.length>40?"…":"")+"\u201d");
+  if(lv)bits.push("the "+lv.toLowerCase()+" marker");
+  if(isPlanned(k))bits.push("the plan for that day");
+  sheet(`<h2>Delete this day?</h2>
+    <div class="sh-sub">${fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}</div>
+    ${bits.length?`<div class="nudge warn"><div><b>This removes</b><p>${bits.join(", ")}.</p></div></div>`
+      :`<div class="nudge info"><div><b>Nothing on it</b><p>This day has no hours recorded.</p></div></div>`}
+    <p class="mut" style="margin:10px 0 14px">Your running total goes back to expecting ${dur(expectedOn(k),"hm")} for this day, so a deleted work day will show as a deficit. It's written to the change log${syncOn()?" and removed from your other device on the next sync":""}.</p>
+    <button class="btn bad wide" id="ddYes" style="min-height:54px">Yes, delete it</button>
+    <button class="btn wide" id="ddNo" style="margin-top:8px">Keep it</button>`);
+  document.getElementById("ddYes").onclick=()=>{
+    shiftsOn(k).forEach(s=>tomb(s.id));
+    S.shifts=S.shifts.filter(s=>s.date!==k);
+    S.notes[k]="";S.offDays[k]=false;S.plan[k]=null;
+    logEdit(k+" day deleted"+(w?" ("+dur(w,"hm")+")":""));
+    save();closeSheet();render();
+    pushNudge("good","Day deleted",fromKey(k).toLocaleDateString(undefined,{day:"numeric",month:"long"})+" removed.");
+    if(then)then()};
+  document.getElementById("ddNo").onclick=then?()=>then():closeSheet;}
+
 /* add / edit a day */
 function addDay(){
   const y=new Date();y.setDate(y.getDate()-1);
@@ -992,7 +1091,7 @@ function addDay(){
     <input class="noteline" id="adN" placeholder="What the day was">
     <div id="adPrev" class="mut" style="text-align:center;padding:12px 0 4px"></div>
     <button class="btn go wide" id="adGo" style="min-height:52px">Save the day</button>
-    <button class="btn wide" id="adOff" style="margin-top:8px">Mark it a day off instead</button>`);
+    <button class="btn wide" id="adOff" style="margin-top:8px">Leave or sick day instead</button>`);
   const read=()=>{
     const k=document.getElementById("adD").value||key(y);
     const i=document.getElementById("adI").value||S.settings.usualStart;
@@ -1013,9 +1112,9 @@ function addDay(){
     logEdit(r.k+" added by hand · "+dur(r.w,"hm"));save();closeSheet();render();
     pushNudge("good","Day added",r.k+" now shows "+dur(r.w,"hm")+".")};
   document.getElementById("adOff").onclick=()=>{
-    const r=read();S.offDays[r.k]=true;
+    const r=read();
     const n=document.getElementById("adN").value.trim();if(n)S.notes[r.k]=n;
-    logEdit(r.k+" marked a day off");save();closeSheet();render()};}
+    save();leaveSheet(r.k)};}
 
 function editDay(k){
   const ss=()=>shiftsOn(k).sort((a,b)=>a.in-b.in);
@@ -1023,11 +1122,16 @@ function editDay(k){
     sheet(`<h2>${fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}</h2>
       <div class="sh-sub">${dur(dayWorked(k),"hm")} worked · ${dur(expectedOn(k),"hm")} expected · ${signed(dayWorked(k)-expectedOn(k))}</div>
       <input class="noteline" id="edN" placeholder="Note for the day" value="${esc(S.notes[k]||"")}">
-      <div class="frow" style="margin-top:6px"><label>Day off<small>Nothing expected — leave, stat, RDO</small></label>
-        <button class="sw" id="edOff" role="switch" aria-checked="${!!S.offDays[k]}"><i></i></button></div>
+      <div class="frow" style="border:0;padding-bottom:4px"><label>Leave<small>Nothing expected on the day</small></label></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px">
+        ${["annual","sick","stat"].map(t=>`<button class="btn" data-lv="${t}" style="min-height:44px;padding:0 6px;font-size:11px;${
+          leaveOf(k)===t?"color:"+LEAVECOL[t]+";border-color:"+LEAVECOL[t]:""}">${LEAVE[t]}</button>`).join("")}
+      </div>
+      <button class="btn wide" data-lv="none" style="min-height:40px;${leaveOf(k)?"":"color:var(--bone)"}">Working day</button>
       <div id="edS"></div>
       <button class="btn wide" id="edAdd" style="margin-top:8px">Add another block of time</button>
-      <button class="btn go wide" id="edGo" style="min-height:52px;margin-top:8px">Done</button>`);
+      <button class="btn go wide" id="edGo" style="min-height:52px;margin-top:8px">Done</button>
+      <button class="btn bad wide" id="edDel" style="margin-top:8px">Delete this whole day</button>`);
     document.getElementById("edS").innerHTML=ss().map(s=>{
       const m=Math.round(mealMs(s,Date.now())/MIN);
       return `<div style="border:1px solid var(--hair);border-radius:3px;padding:4px 12px 12px;margin:10px 0">
@@ -1045,12 +1149,20 @@ function editDay(k){
         s.breaks=m>0?[{in:mid,out:mid+m*MIN,type:"meal"}]:[];logEdit(k+" meal set to "+m+"m")}
       save();paint();render()});
     document.querySelectorAll("#edS [data-del]").forEach(b=>b.onclick=()=>{
-      tomb(b.dataset.del);S.shifts=S.shifts.filter(x=>x.id!=b.dataset.del);
-      logEdit(k+" block deleted");save();paint();render()});
-    document.getElementById("edOff").onclick=ev=>{
-      const on=ev.currentTarget.getAttribute("aria-checked")==="true";
-      S.offDays[k]=!on;
-      logEdit(k+(on?" no longer a day off":" marked a day off"));save();paint();render()};
+      const s=S.shifts.find(x=>x.id==b.dataset.del);if(!s)return;
+      sheet(`<h2>Delete this block?</h2>
+        <div class="sh-sub">${clock(s.in)}${s.out?" → "+clock(s.out):" — still running"} · ${dur(worked(s),"hm")}</div>
+        <button class="btn bad wide" id="bdY" style="min-height:52px">Delete it</button>
+        <button class="btn wide" id="bdN" style="margin-top:8px">Keep it</button>`);
+      document.getElementById("bdY").onclick=()=>{
+        tomb(s.id);S.shifts=S.shifts.filter(x=>x.id!==s.id);
+        logEdit(k+" block deleted");save();render();paint()};
+      document.getElementById("bdN").onclick=()=>paint()});
+    document.querySelectorAll("[data-lv]").forEach(b=>b.onclick=()=>{
+      const t=b.dataset.lv;
+      S.offDays[k]=t==="none"?false:t;
+      logEdit(k+(t==="none"?" set back to a working day":" marked "+LEAVE[t].toLowerCase()));
+      save();paint();render()});
     document.getElementById("edAdd").onclick=()=>{
       const t=dayStamp(k,S.settings.usualStart);
       S.shifts.push({id:Date.now(),date:k,in:t,out:t+S.settings.target*HR,breaks:[]});
@@ -1058,7 +1170,10 @@ function editDay(k){
     document.getElementById("edGo").onclick=()=>{
       const v=document.getElementById("edN").value.trim();
       S.notes[k]=v;
-      save();closeSheet();render()};};
+      save();closeSheet();render()};
+    document.getElementById("edDel").onclick=()=>{
+      const v=document.getElementById("edN").value.trim();S.notes[k]=v;save();
+      deleteDay(k)};};
   paint();}
 
 /* ════════ work network ════════ */
@@ -1342,15 +1457,15 @@ function handleLink(){
 function dl(n,t,ty){const b=new Blob([t],{type:ty||"text/plain"}),u=URL.createObjectURL(b);
   const a=document.createElement("a");a.href=u;a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 document.getElementById("expCsv").onclick=()=>{
-  const now=Date.now(),r=[["Date","Day","Start","Finish","Meal min","Worked h","Expected h","Balance h","Day off","Note"]];
+  const now=Date.now(),r=[["Date","Day","Start","Finish","Meal min","Worked h","Expected h","Balance h","Leave","Note"]];
   allKeys().forEach(k=>{
     const ss=shiftsOn(k).sort((a,b)=>a.in-b.in),note=(S.notes[k]||"").replace(/[",\n]/g," ");
     if(!ss.length){r.push([k,DOW[fromKey(k).getDay()],"","","","0.00",(expectedOn(k)/HR).toFixed(2),
-      (-expectedOn(k)/HR).toFixed(2),S.offDays[k]?"yes":"",note]);return}
+      (-expectedOn(k)/HR).toFixed(2),leaveName(k)||"",note]);return}
     ss.forEach((s,i)=>r.push([k,DOW[fromKey(k).getDay()],clock(s.in),s.out?clock(s.out):"",
       Math.round(mealMs(s,now)/MIN),(worked(s,now)/HR).toFixed(2),
       i===0?(expectedOn(k)/HR).toFixed(2):"",i===0?((dayWorked(k,now)-expectedOn(k))/HR).toFixed(2):"",
-      S.offDays[k]?"yes":"",i===0?note:""]))});
+      leaveName(k)||"",i===0?note:""]))});
   dl("hours-"+key()+".csv",r.map(x=>x.map(c=>`"${c}"`).join(",")).join("\n"),"text/csv")};
 document.getElementById("expJson").onclick=()=>dl("hours-backup-"+key()+".json",JSON.stringify(S,null,1),"application/json");
 document.getElementById("impJson").onclick=()=>document.getElementById("fileIn").click();
