@@ -225,7 +225,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="eyebrow">Time at work</div>
     <div class="brand">Hour<span>s</span></div>
   </div>
-  <div class="ver">v2.9<br><span id="storeState"></span></div>
+  <div class="ver">v3.0<br><span id="storeState"></span></div>
 </header>
 
 <!-- ══════════ TODAY ══════════ -->
@@ -350,7 +350,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <button class="btn wide" id="showRules">The rules behind the checks</button>
     <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
   </div>
-  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v2.9 · works offline</p>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v3.0 · works offline</p>
 </section>
 
 <nav class="tabs"><div class="in">
@@ -1213,7 +1213,7 @@ async function netPrompt(){
    seconds after a change, pulled when the app opens. Config and tokens live
    outside the synced blob so they can't loop back on themselves. */
 const SKEY="hours.sync",AKEY="hours.auth";
-let SY=null,AU=null,syncState="off",syncAt=0,pushT=null;
+let SY=null,AU=null,syncState="off",syncAt=0,pushT=null,deferT=null;
 try{SY=JSON.parse(Store.get(SKEY)||"null")}catch(e){}
 try{AU=JSON.parse(Store.get(AKEY)||"null")}catch(e){}
 const saveSync=()=>Store.set(SKEY,JSON.stringify(SY));
@@ -1259,14 +1259,17 @@ async function pull(){
 async function push(){
   let body=S;
   try{const remote=await pull();
-    if(remote){const m=mergeState(S,remote);
-      if(JSON.stringify(m.shifts)!==JSON.stringify(S.shifts)){
-        S=m;repair(S);Store.set(KEY,JSON.stringify(S));_cache.clear();_run=null;render()}
-      body=S}}
-  catch(e){/* offline: push what we have, the merge on the far side still applies */}
+    /* Send the merged blob so a stale tab can only ever add to the cloud — but
+       don't adopt it into S here. A background swap while a sheet is open leaves
+       that sheet editing a detached object, and the edit silently goes nowhere.
+       Incoming changes are taken up by syncNow instead. */
+    if(remote)body=mergeState(S,remote);}
+  catch(e){/* offline: push what we have, the far side merges anyway */}
   await sbRest("hours_state?on_conflict=user_id",{method:"POST",
     headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
     body:JSON.stringify([{user_id:AU.uid,state:body,updated_at:new Date().toISOString()}])})}
+/* true while any sheet is open — adopting remote state mid-edit orphans it */
+function busyEditing(){return scrim.classList.contains("open")}
 
 function queuePush(){
   if(!syncOn())return;
@@ -1283,6 +1286,9 @@ async function syncNow(quiet){
     const before=JSON.stringify(S.shifts);
     const merged=mergeState(S,remote);
     const changed=JSON.stringify(merged.shifts)!==before;
+    if(changed&&busyEditing()){
+      /* come back once the sheet is closed rather than pulling the rug */
+      setSync("ok");clearTimeout(deferT);deferT=setTimeout(()=>syncNow(true),4000);return}
     if(changed){
       Store.set(PREV,JSON.stringify(S));          /* one step of undo, always */
       S=merged;repair(S);
@@ -1370,32 +1376,54 @@ function drawSyncCard(){
    you'd clocked out could resurrect a finished shift. Wall-clock stamps can't
    decide that safely, so the shifts are reconciled record by record and a
    completed shift always beats an open one. */
-function pickShift(a,b){
+/* Same shift, two copies. A finished one always beats an unfinished one, since
+   nothing should reopen a day you clocked out of. Beyond that the newer copy
+   wins — the old code preferred the later start time, which threw away exactly
+   the correction you make when you backdate a forgotten clock-in. */
+function pickShift(prev,next,nextIsNewer){
+  if(prev.out&&!next.out)return prev;
+  if(!prev.out&&next.out)return next;
+  return nextIsNewer?next:prev}
+/* Overlapping shifts with different ids: no provenance to go on, so prefer the
+   finished one, then the one covering more time. */
+function pickOverlap(a,b){
   if(a.out&&!b.out)return a;
   if(!a.out&&b.out)return b;
-  if(a.out&&b.out)return b.out>a.out?b:a;
-  return b.in>a.in?b:a}
+  return worked(b)>worked(a)?b:a}
 function dedupeShifts(list){
   const out=[];
   list.slice().sort((a,b)=>a.in-b.in).forEach(s=>{
     const i=out.findIndex(o=>o.date===s.date&&s.in<(o.out||o.in+MIN)&&(s.out||s.in+MIN)>o.in);
-    if(i<0)out.push(s);else out[i]=pickShift(out[i],s)});
+    if(i<0)out.push(s);else out[i]=pickOverlap(out[i],s)});
   return out}
 function mergeState(local,remote){
   if(!remote)return local;
   /* Symmetric: whichever copy was written later wins the scalar fields, so the
      result is the same whichever device runs the merge. Shifts are resolved by
      rule rather than by clock, because a stale device's clock is still current. */
-  const newer=(local.stamp||0)>=(remote.stamp||0)?local:remote;
+  /* Deterministic even when the stamps tie to the millisecond. Falling back to
+     "local" would make the result depend on which device ran the merge, so the
+     last resort compares content — arbitrary, but identical on both sides. */
+  const ls=local.stamp||0,rs=remote.stamp||0;
+  let newer;
+  if(ls!==rs)newer=ls>rs?local:remote;
+  else{
+    const lc=(local.shifts||[]).length,rc=(remote.shifts||[]).length;
+    if(lc!==rc)newer=lc>rc?local:remote;
+    else{
+      const lj=JSON.stringify(local.shifts||[]),rj=JSON.stringify(remote.shifts||[]);
+      newer=lj>=rj?local:remote}}
   const older=newer===local?remote:local;
   const out={...structuredClone(DEF),...older,...newer,
     settings:{...DEF.settings,...(older.settings||{}),...(newer.settings||{})}};
   const graves={...(older.tomb||{}),...(newer.tomb||{})};
   const byId=new Map();
-  [...(older.shifts||[]),...(newer.shifts||[])].forEach(s=>{
+  const put=(s,isNewer)=>{
     if(!s||!s.in)return;
     if(graves[String(s.id)])return;                 /* stays buried */
-    byId.set(s.id,byId.has(s.id)?pickShift(byId.get(s.id),s):s)});
+    byId.set(s.id,byId.has(s.id)?pickShift(byId.get(s.id),s,isNewer):s)};
+  (older.shifts||[]).forEach(s=>put(s,false));
+  (newer.shifts||[]).forEach(s=>put(s,true));
   out.shifts=dedupeShifts([...byId.values()]);
   out.tomb=graves;
   /* per-key union, later copy on top — an explicit blank counts as a value, so
