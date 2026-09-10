@@ -30,10 +30,10 @@ body{background:var(--ink);color:var(--bone);font-family:var(--body);font-size:1
 button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
 input,select{font-family:inherit;font-size:16px}
 .wrap{max-width:520px;margin:0 auto;padding:0 14px}
-header.top{padding:calc(14px + env(safe-area-inset-top)) 14px 10px;max-width:520px;margin:0 auto;
-  display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
-.brand{font-family:var(--disp);font-weight:700;font-size:30px;letter-spacing:.06em;
-  text-transform:uppercase;line-height:.95}
+header.top{padding:calc(8px + env(safe-area-inset-top)) 14px 8px;max-width:520px;margin:0 auto;
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.brand{font-family:var(--disp);font-weight:700;font-size:23px;letter-spacing:.07em;
+  text-transform:uppercase;line-height:1}
 .brand span{color:var(--molten)}
 .eyebrow{font-family:var(--semi);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
   color:var(--dimmer);margin-bottom:3px}
@@ -102,7 +102,9 @@ header.top{padding:calc(14px + env(safe-area-inset-top)) 14px 10px;max-width:520
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:64px;
   margin:14px 0 6px;position:relative}
 .wbar{width:100%;border-radius:2px 2px 0 0;background:var(--slab3);min-height:3px;transition:height .5s ease}
-.wbar.done{background:var(--verdigris)}.wbar.over{background:var(--molten)}
+.wbar.done{background:var(--verdigris)}
+.wbar.short{background:var(--molten)}
+.wbar.lng{background:var(--oxide)}
 .wbar.today{outline:1px solid rgba(233,229,219,.35);outline-offset:1px}
 .planmark{position:absolute;left:-2px;right:-2px;height:2px;background:var(--bone);opacity:.55;border-radius:2px}
 .wlbl{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;font-family:var(--semi);font-size:10.5px;
@@ -129,8 +131,9 @@ header.top{padding:calc(14px + env(safe-area-inset-top)) 14px 10px;max-width:520
 .tl-run b{font-family:var(--mono);font-size:11px;font-weight:400;line-height:1.15;display:block;padding-top:4px}
 .tl-run u{position:absolute;bottom:5px;height:2px;border-radius:2px;opacity:.8}
 .tl-zero{position:absolute;bottom:3px;width:1px;height:6px;background:rgba(233,229,219,.25)}
-.tlrow{display:flex;align-items:center;height:28px;width:100%;text-align:left;
+.tlrow{display:flex;align-items:center;flex-wrap:wrap;height:28px;width:100%;text-align:left;
   border-bottom:1px solid var(--hair2)}
+.tlrow.hasnote{height:auto;padding-top:3px}
 .tlrow:last-child{border-bottom:0}
 .tlrow.wknd{opacity:.5}
 .tlrow.today .tl-lbl{color:var(--molten)}
@@ -148,6 +151,11 @@ header.top{padding:calc(14px + env(safe-area-inset-top)) 14px 10px;max-width:520
 .tl-bar.live{border-right:2px solid var(--bone)}
 .tl-meal{position:absolute;top:8px;height:12px;background:var(--ink);opacity:.7}
 .tl-off{position:absolute;top:13px;left:0;right:0;border-top:1px dashed rgba(233,229,219,.18)}
+/* Notes get their own slim line rather than being squeezed into the track — on a
+   normal day only about a fifth of the track is free, which isn't enough to read. */
+.tl-notefull{flex-basis:100%;width:100%;font-size:11.5px;font-style:italic;color:var(--dim);
+  padding:0 0 5px 40px;margin-top:-3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-align:left}
 .tl-key{display:flex;gap:11px;flex-wrap:wrap;justify-content:center;padding-top:12px;margin-top:4px;
   border-top:1px solid var(--hair2);font-family:var(--semi);font-size:9px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--dimmer)}
@@ -175,6 +183,7 @@ header.top{padding:calc(14px + env(safe-area-inset-top)) 14px 10px;max-width:520
 .frow input[type=time],.frow input[type=number],.frow input[type=date],.frow select{
   background:#12141a;border:1px solid var(--hair);color:var(--bone);border-radius:3px;padding:9px 10px;
   font-family:var(--mono);width:130px;text-align:center;min-height:44px}
+.frow select{width:auto;min-width:136px;max-width:185px;font-size:14px;padding-right:6px}
 .sw{width:50px;height:29px;border-radius:100px;background:#12141a;border:1px solid var(--hair);
   position:relative;flex:none;transition:background .2s}
 .sw i{position:absolute;top:2px;left:2px;width:23px;height:23px;border-radius:50%;background:var(--dimmer);
@@ -225,7 +234,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="eyebrow">Time at work</div>
     <div class="brand">Hour<span>s</span></div>
   </div>
-  <div class="ver">v3.1<br><span id="storeState"></span></div>
+  <div class="ver">v3.3<br><span id="storeState"></span></div>
 </header>
 
 <!-- ══════════ TODAY ══════════ -->
@@ -236,7 +245,6 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="readout" id="readout">0:00<small>hrs</small></div>
     <div class="sub" id="readSub">Not on the clock</div>
     <div class="bar"><i id="progBar" style="width:0%"></i></div>
-    <div class="barfoot"><span id="progL"></span><span id="progR"></span></div>
     <button class="punch go" id="punchBtn">Clock in</button>
     <div class="btnrow" id="btnRow"></div>
     <input class="noteline" id="todayNote" placeholder="Note for today — optional">
@@ -247,11 +255,9 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="readout" id="wkWorked" style="font-size:clamp(36px,11.5vw,50px);margin:0 0 2px">0:00</div>
     <div class="sub" id="wkLeft"></div>
     <div class="bar"><i id="wkBar" style="width:0%"></i><u id="wkPace"></u></div>
-    <div class="barfoot"><span class="mut" style="font-size:11px">line = fully caught up</span><span id="wkDays" style="font-family:var(--mono);font-size:11px;color:var(--dim)"></span></div>
     <div class="week" id="weekBars"></div>
     <div class="wlbl" id="weekLbls"></div>
-    <div class="stats">
-      <div class="stat"><b id="stLeft">0:00</b><span id="stLeftK">Left this week</span></div>
+    <div class="stats" style="grid-template-columns:1fr 1fr">
       <div class="stat"><b id="stPace">level</b><span>Days so far</span></div>
       <div class="stat"><b id="stBank">0:00</b><span>Banked all up</span></div>
     </div>
@@ -274,12 +280,11 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     </div>
     <div id="tlRows"></div>
     <div class="tl-key" id="tlKey"></div>
+    <div class="mut" style="text-align:center;font-size:11px;padding-top:8px">Tap any day to edit it</div>
   </div>
   <div class="card">
-    <div class="card-lbl"><span>Your days</span><span class="mut" style="font-size:10px">Tap to edit</span></div>
-    <button class="btn go wide" id="addDay" style="min-height:50px;margin-bottom:6px">＋ Add a day you missed</button>
+    <button class="btn go wide" id="addDay" style="min-height:50px">＋ Add a day you missed</button>
     <div id="leaveTally"></div>
-    <div id="histList"></div>
   </div>
   <div class="card">
     <div class="card-lbl">Your own copy</div>
@@ -350,7 +355,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <button class="btn wide" id="showRules">The rules behind the checks</button>
     <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
   </div>
-  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v3.1 · works offline</p>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v3.3 · works offline</p>
 </section>
 
 <nav class="tabs"><div class="in">
@@ -606,25 +611,22 @@ function render(){
   document.getElementById("readSub").textContent=
     b?"Back when you're ready · "+dur(w,"hm")+" worked"
     :s?"In at "+clock(s.in)+" · "+(plan?"done at "+clock(finishBy(s,now,plan)):"nothing planned today")
-    :w>0?(shiftsOn(k).length>1?shiftsOn(k).length+" blocks · "+dur(w,"hm")+" today":"Done for today · "+dur(w,"hm"))
-      +(expectedOn(k)>MIN&&w<expectedOn(k)?" · "+dur(expectedOn(k)-w,"hm")+" to go":"")
+    :w>0?(shiftsOn(k).length>1?shiftsOn(k).length+" blocks":"Clocked out")
+      +(!plan?" · all credit":w>=tgt?" · "+dur(w-tgt,"hm")+" over":" · "+dur(tgt-w,"hm")+" to go")
     :lvNow?lvNow+(isFullLeave(k)?" — nothing expected today":" · "+dur(expectedOn(k),"hm")+" still expected")
     :"Not on the clock";
   const bar=document.getElementById("progBar");
   bar.style.width=Math.min(100,w/tgt*100)+"%";bar.className=w>=tgt?"done":"";
-  document.getElementById("progL").textContent=dur(w,"hm");
-  document.getElementById("progR").textContent=!plan?"+"+dur(w,"hm")+" all credit"
-    :w>=tgt?"+"+dur(w-tgt,"hm")+" over":dur(tgt-w,"hm")+" to go";
   const pb=document.getElementById("punchBtn");
   pb.textContent=s?"Clock out":"Clock in";pb.className="punch "+(s?"stop":"go");
   pb.onclick=s?clockOut:()=>clockIn();
 
   const br=document.getElementById("btnRow");
   const lvToday=leaveName(k),lvE=leaveEntry(k);
-  if(!s)br.innerHTML=`<button class="btn" id="adj">${w>0?"Back on site — set an earlier start":"Been here a while? Set an earlier start"}</button>`
-    +`<button class="btn" id="lv" style="${lvToday?"color:"+LEAVECOL[leaveOf(k)]+";border-color:"+LEAVECOL[leaveOf(k)]:""}">${
-      lvToday?(isFullLeave(k)?lvToday:dur(leaveMs(k))+" "+lvToday.toLowerCase())+" · change"
-        :w>0?"Rest of the day off?":"Sick or on leave today?"}</button>`;
+  if(!s)br.innerHTML=`<div class="split">
+      <button class="btn" id="adj">${w>0?"Clock in earlier":"Forgot to clock in?"}</button>
+      <button class="btn" id="lv" style="${lvToday?"color:"+LEAVECOL[leaveOf(k)]+";border-color:"+LEAVECOL[leaveOf(k)]:""}">${
+        lvToday?(isFullLeave(k)?lvToday:dur(leaveMs(k))+" "+lvToday.toLowerCase()):w>0?"Rest off":"Leave or sick"}</button></div>`;
   else if(b)br.innerHTML=`<button class="btn v" id="bEnd">Back from break — ${dur(now-b.in)}</button>`
     +`<button class="btn" id="adj">In at ${clock(s.in)} · adjust</button>`;
   else br.innerHTML=`<button class="btn v" id="bGo">Meal break${mealMs(s,now)>MIN?" · "+dur(mealMs(s,now))+" so far":" · 30m"}</button>`
@@ -651,9 +653,6 @@ function tick(){
   else ro.innerHTML=dur(w)+"<small>hrs</small>";
   const bar=document.getElementById("progBar");
   bar.style.width=Math.min(100,w/tgt*100)+"%";bar.className=w>=tgt?"done":"";
-  document.getElementById("progL").textContent=dur(w,"hm");
-  document.getElementById("progR").textContent=!plan?"+"+dur(w,"hm")+" all credit"
-    :w>=tgt?"+"+dur(w-tgt,"hm")+" over":dur(tgt-w,"hm")+" to go";
   drawWeek();checkNudges()}
 
 let wkOff=0;
@@ -688,28 +687,27 @@ function drawWeek(){
   ro.innerHTML=dur(w)+`<small>of ${dur(owed)}</small>`;
   ro.className="readout"+(w>=owed&&owed>0?" on":"");
   document.getElementById("wkLeft").textContent=
-    left>MIN?dur(left,"hm")+" still to do":left<-MIN?dur(-left,"hm")+" extra this week":"Week's hours are in";
+    (left>MIN?dur(left,"hm")+" still to do":left<-MIN?dur(-left,"hm")+" extra this week":"Week's hours are in")
+    +" · "+daysIn+(daysIn===1?" day in":" days in");
   const bar=document.getElementById("wkBar");
   bar.style.width=Math.min(100,w/Math.max(owed,1)*100)+"%";bar.className=w>=owed?"done":"";
   document.getElementById("wkPace").style.left=Math.min(100,byNow/Math.max(owed,1)*100)+"%";
-  document.getElementById("wkDays").textContent=daysIn+(daysIn===1?" day":" days");
+
 
   const max=Math.max(tgt*1.3,...ks.map(k=>dayWorked(k,now)));
   document.getElementById("weekBars").innerHTML=ks.map(k=>{
     const d=dayWorked(k,now),pl=plannedOn(k),hh=Math.max(d?4:2,d/max*100);
     const goal=pl||tgt;
+    /* same colour language as the timeline: green made it, orange short, red well over */
+    const cls=!d?"":goal<=0?"done":d>=goal+2*HR?"lng":d>=goal*.98?"done":"short";
     return `<div style="display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative">
       ${isPlanned(k)?`<span class="planmark" style="bottom:${Math.min(100,pl/max*100)}%"></span>`:""}
-      <div class="wbar ${d>=goal*1.02&&goal>0?"over":d>=goal*.98&&goal>0?"done":""} ${k===t?"today":""}" style="height:${hh}%"></div></div>`
+      <div class="wbar ${cls} ${k===t?"today":""}" style="height:${hh}%"></div></div>`
     }).join("")+`<div class="tgtline" style="bottom:${tgt/max*100}%"></div>`;
   document.getElementById("weekLbls").innerHTML=ks.map(k=>{
     const d=dayWorked(k,now);
     return `<div>${DOW[fromKey(k).getDay()].slice(0,2)}<b>${d?dur(d):"·"}</b></div>`}).join("");
 
-  const sl=document.getElementById("stLeft");
-  sl.textContent=Math.abs(left)<MIN?"0:00":dur(Math.abs(left));
-  sl.style.color=left>MIN?"var(--bone)":"var(--verdigris)";
-  document.getElementById("stLeftK").textContent=left>MIN?"Left this week":"Extra this week";
   const sp=document.getElementById("stPace");
   sp.textContent=Math.abs(pace)<MIN?"level":signed(pace);
   sp.style.color=pace>=-MIN?"var(--verdigris)":"var(--molten)";
@@ -760,15 +758,17 @@ function drawTimeline(){
   const ks=[];for(let i=0;i<tlDays;i++){const d=new Date();d.setDate(d.getDate()-i);ks.push(key(d))}
 
   document.getElementById("tlLbl").textContent="Last "+tlDays+" days";
-  document.getElementById("tlNav").innerHTML=
-    `<button class="btn${tlDays===14?" go":""}" style="min-height:30px;padding:0 11px" data-tl="14">14</button>
-     <button class="btn${tlDays===28?" go":""}" style="min-height:30px;padding:0 11px" data-tl="28">28</button>`;
+  document.getElementById("tlNav").innerHTML=[14,28,90].map(n=>
+    `<button class="btn${tlDays===n?" go":""}" style="min-height:30px;padding:0 9px" data-tl="${n}">${n}</button>`).join("");
   document.querySelectorAll("[data-tl]").forEach(b=>b.onclick=()=>{tlDays=+b.dataset.tl;drawTimeline()});
 
   /* build each row first, so the axis can be fitted to bars and bands together */
   const rows=ks.map(k=>{
     const ss=shiftsOn(k).sort((a,b)=>a.in-b.in);
-    return{k,ss,band:bandFor(k,ss[0],now),w:dayWorked(k,now)}});
+    return{k,ss,band:bandFor(k,ss[0],now),w:dayWorked(k,now)}})
+    /* a blank Saturday tells you nothing and cost four rows out of fourteen */
+    .filter(r=>{const dw=fromKey(r.k).getDay();
+      return!((dw===0||dw===6)&&!r.ss.length&&!leaveEntry(r.k))});
 
   let lo=24,hi=0;
   rows.forEach(r=>{
@@ -817,7 +817,8 @@ function drawTimeline(){
         const g1=m1.getHours()+m1.getMinutes()/60,g2=m2.getHours()+m2.getMinutes()/60;
         if(g2>g1)art+=`<div class="tl-meal" style="left:${x(g1)}%;width:${(g2-g1)/span*100}%"></div>`})});
     const bw=Math.max(1,Math.abs(run)/peak*half);
-    return `<button class="tlrow ${wknd?"wknd":""} ${k===t?"today":""}" data-day="${k}">
+    const note=S.notes[k];
+    return `<button class="tlrow ${wknd?"wknd":""} ${k===t?"today":""} ${note?"hasnote":""}" data-day="${k}">
       <span class="tl-lbl">${DOW[dw]}${leaveEntry(k)&&w?`<span style="color:${LEAVECOL[leaveOf(k)]}">•</span>`:""}<i>${d.getDate()}/${d.getMonth()+1}</i></span>
       <span class="tl-track">${art}</span>
       <span class="tl-day">${leaveEntry(k)&&!w?`<span style="color:${LEAVECOL[leaveOf(k)]};font-size:9.5px">${
@@ -827,6 +828,7 @@ function drawTimeline(){
         <span class="tl-zero" style="left:${half}px"></span>
         <u style="${run>=0?`left:${half}px`:`left:${half-bw}px`};width:${bw}px;
           background:${run>=0?"var(--verdigris)":"var(--molten)"}"></u></span>
+      ${note?`<span class="tl-notefull">✎ ${esc(note)}</span>`:""}
     </button>`}).join("");
   rowsEl.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>editDay(b.dataset.day));
 
@@ -836,8 +838,9 @@ function drawTimeline(){
   document.getElementById("tlKey").innerHTML=
     `<span><i style="background:var(--verdigris)"></i>Made it</span>
      <span><i style="background:var(--molten)"></i>Short</span>
-     <span><i style="background:var(--oxide)"></i>2h+ over</span>
+     <span><i style="background:var(--oxide)"></i>Over</span>
      <span><i style="background:var(--ink);box-shadow:0 0 0 1px var(--hair)"></i>Meal</span>
+     <span style="color:var(--dim)">✎ Note</span>
      <button id="tlBand" style="display:flex;align-items:center;gap:4px;color:var(--dim);
        font-family:var(--semi);font-size:9px;letter-spacing:.1em;text-transform:uppercase">
        <i style="width:9px;height:9px;border-radius:2px;background:rgba(233,229,219,.14);display:block"></i>${bandLbl} ⇄</button>`;
@@ -849,31 +852,17 @@ function drawTimeline(){
 function hm2f(s){const[h,m]=String(s||"9:00").split(":").map(Number);return h+(m||0)/60}
 
 function drawDays(){
-  const now=Date.now(),ks=allKeys().reverse(),el=document.getElementById("histList");
-  if(!ks.length){el.innerHTML=`<div class="empty"><b>Nothing logged yet</b>Clock in, or add a day you've already worked.</div>`;return}
-  el.innerHTML=ks.slice(0,90).map(k=>{
-    const ss=shiftsOn(k).sort((a,b)=>a.in-b.in),d=fromKey(k);
-    const w=dayWorked(k,now),off=!!leaveEntry(k),open=ss.some(s=>!s.out),note=S.notes[k];
-    const delta=w-expectedOn(k);
-    const meal=ss.reduce((a,s)=>a+mealMs(s,now),0);
-    const times=ss.length?ss.map(s=>clock(s.in)+"–"+(s.out?clock(s.out):"…")).join(", ")
-      +(meal>MIN?"  ·  "+Math.round(meal/MIN)+"m meal":""):"—";
-    return `<button class="hrow" data-day="${k}">
-      <span class="hdate">${DOW[d.getDay()]}<b>${d.getDate()}/${d.getMonth()+1}</b></span>
-      <span class="hmid"><b>${(off&&!w)?`<span style="color:${LEAVECOL[leaveOf(k)]}">${leaveName(k)}</span>`:dur(w,"hm")}${
-        off&&w?` <span style="color:${LEAVECOL[leaveOf(k)]};font-size:11px">+ ${dur(leaveMs(k))} ${leaveOf(k)}</span>`:""}${
-        open?'<span class="tag">open</span>':""}</b>
-        <span${note?' class="note"':""}>${note?esc(note):times}</span></span>
-      <span class="hdelta ${off?"off":delta>=0?"pos":"neg"}">${off?"—":Math.abs(delta)<MIN?"0:00":signed(delta)}</span>
-    </button>`}).join("");
-  el.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>editDay(b.dataset.day));
+  const el=document.getElementById("leaveTally");if(!el)return;
   const yr=new Date().getFullYear(),tal=leaveTally(yr);
   const fmt=n=>Number.isInteger(n)?String(n):n.toFixed(1);
-  const parts=["annual","sick","stat"].filter(t=>tal[t]>0).map(t=>
-    `<span style="color:${LEAVECOL[t]}">${fmt(tal[t])}</span> ${LEAVE[t].toLowerCase()}`);
-  document.getElementById("leaveTally").innerHTML=parts.length
-    ?`<div class="mut" style="text-align:center;padding:2px 0 10px;font-size:12.5px">
-       ${yr} so far — ${parts.join(" · ")} (days)</div>`:"";}
+  const NAMES={annual:["day annual leave","days annual leave"],
+    sick:["sick day","sick days"],stat:["public holiday","public holidays"],
+    other:["day off","days off"]};
+  const parts=["annual","sick","stat","other"].filter(t=>tal[t]>0).map(t=>
+    `<span style="color:${LEAVECOL[t]}">${fmt(tal[t])}</span> ${NAMES[t][tal[t]===1?0:1]}`);
+  el.innerHTML=parts.length
+    ?`<div class="mut" style="text-align:center;padding:10px 0 2px;font-size:12.5px">
+       ${yr} so far — ${parts.join(" · ")}</div>`:"";}
 function esc(s){return String(s).replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]))}
 
 /* ════════ sheets ════════ */
