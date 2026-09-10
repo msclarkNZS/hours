@@ -25,14 +25,14 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{background:var(--ink);color:var(--bone);font-family:var(--body);font-size:16px;line-height:1.45;
-  padding-bottom:calc(74px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;
+  padding-bottom:calc(66px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;
   background-image:radial-gradient(120% 55% at 50% -10%,rgba(255,140,26,.07),transparent 60%)}
 button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
 input,select{font-family:inherit;font-size:16px}
 .wrap{max-width:520px;margin:0 auto;padding:0 14px}
-header.top{padding:calc(8px + env(safe-area-inset-top)) 14px 8px;max-width:520px;margin:0 auto;
+header.top{padding:calc(6px + env(safe-area-inset-top)) 14px 6px;max-width:520px;margin:0 auto;
   display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.brand{font-family:var(--disp);font-weight:700;font-size:23px;letter-spacing:.07em;
+.brand{font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.07em;
   text-transform:uppercase;line-height:1}
 .brand span{color:var(--molten)}
 .eyebrow{font-family:var(--semi);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
@@ -40,11 +40,11 @@ header.top{padding:calc(8px + env(safe-area-inset-top)) 14px 8px;max-width:520px
 .ver{font-family:var(--mono);font-size:10px;color:var(--dimmer);text-align:right}
 
 .card{background:linear-gradient(178deg,var(--slab2),var(--slab));border:1px solid var(--hair);
-  border-radius:3px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+  border-radius:3px;padding:13px 14px;margin-bottom:10px;position:relative;overflow:hidden}
 .card::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;
   background:linear-gradient(90deg,transparent,rgba(233,229,219,.18),transparent)}
 .card-lbl{font-family:var(--semi);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--dimmer);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  color:var(--dimmer);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 
 .pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--semi);font-size:11px;
   letter-spacing:.17em;text-transform:uppercase;padding:5px 11px;border-radius:100px;border:1px solid currentColor}
@@ -54,27 +54,27 @@ header.top{padding:calc(8px + env(safe-area-inset-top)) 14px 8px;max-width:520px
 @keyframes beat{0%,100%{opacity:1}50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.pill i{animation:none!important}}
 
-.readout{font-family:var(--mono);font-weight:500;font-size:clamp(48px,16vw,70px);line-height:1;
-  letter-spacing:-.03em;margin:12px 0 2px;font-variant-numeric:tabular-nums}
+.readout{font-family:var(--mono);font-weight:500;font-size:clamp(42px,13.5vw,58px);line-height:1;
+  letter-spacing:-.03em;margin:7px 0 2px;font-variant-numeric:tabular-nums}
 .readout.on{color:var(--molten)}.readout.brk{color:var(--violet)}
 .readout small{font-size:.34em;letter-spacing:.02em;color:var(--dim);margin-left:.12em}
 .sub{font-family:var(--semi);font-size:12.5px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase}
 
 .bar{height:8px;background:#12141a;border:1px solid var(--hair2);border-radius:100px;
-  overflow:visible;margin:14px 0 7px;position:relative}
+  overflow:visible;margin:10px 0 0;position:relative}
 .bar>i{display:block;height:100%;background:var(--molten);border-radius:100px;transition:width .6s ease}
 .bar>i.done{background:var(--verdigris)}
 .bar>u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--bone);opacity:.6;transition:left .6s ease}
 .barfoot{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--dim)}
 
-.punch{width:100%;min-height:62px;border-radius:3px;margin-top:14px;font-family:var(--disp);
+.punch{width:100%;min-height:56px;border-radius:3px;margin-top:12px;font-family:var(--disp);
   font-weight:700;font-size:23px;letter-spacing:.13em;text-transform:uppercase;
   display:flex;align-items:center;justify-content:center;border:1px solid transparent;transition:transform .08s}
 .punch:active{transform:scale(.985)}
 .punch.go{background:var(--molten);color:#1a1206;box-shadow:0 8px 26px -12px rgba(255,140,26,.7)}
 .punch.stop{background:transparent;color:var(--bone);border-color:rgba(233,229,219,.3)}
-.btnrow{display:grid;gap:8px;margin-top:8px}
-.btn{min-height:46px;border-radius:3px;border:1px solid var(--hair);background:#191d26;
+.btnrow{display:grid;gap:7px;margin-top:7px}
+.btn{min-height:44px;border-radius:3px;border:1px solid var(--hair);background:#191d26;
   font-family:var(--semi);font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;
   display:flex;align-items:center;justify-content:center;padding:0 12px;color:var(--dim);text-align:center}
 .btn:active{background:var(--slab3)}
@@ -99,8 +99,8 @@ header.top{padding:calc(8px + env(safe-area-inset-top)) 14px 8px;max-width:520px
 .linkrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .linkrow .btn{flex:1;min-height:40px}
 
-.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:64px;
-  margin:14px 0 6px;position:relative}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:52px;
+  margin:11px 0 5px;position:relative}
 .wbar{width:100%;border-radius:2px 2px 0 0;background:var(--slab3);min-height:3px;transition:height .5s ease}
 .wbar.done{background:var(--verdigris)}
 .wbar.short{background:var(--molten)}
@@ -113,8 +113,8 @@ header.top{padding:calc(8px + env(safe-area-inset-top)) 14px 8px;max-width:520px
 .tgtline{position:absolute;left:0;right:0;border-top:1px dashed rgba(233,229,219,.22);pointer-events:none}
 
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--hair2);
-  border:1px solid var(--hair);border-radius:3px;overflow:hidden;margin-top:14px}
-.stat{background:var(--slab);padding:11px 8px;text-align:center}
+  border:1px solid var(--hair);border-radius:3px;overflow:hidden;margin-top:11px}
+.stat{background:var(--slab);padding:8px 8px;text-align:center}
 .stat b{display:block;font-family:var(--mono);font-size:18px;letter-spacing:-.02em}
 .stat span{font-family:var(--semi);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer)}
 
@@ -131,7 +131,7 @@ header.top{padding:calc(8px + env(safe-area-inset-top)) 14px 8px;max-width:520px
 .tl-run b{font-family:var(--mono);font-size:11px;font-weight:400;line-height:1.15;display:block;padding-top:4px}
 .tl-run u{position:absolute;bottom:5px;height:2px;border-radius:2px;opacity:.8}
 .tl-zero{position:absolute;bottom:3px;width:1px;height:6px;background:rgba(233,229,219,.25)}
-.tlrow{display:flex;align-items:center;flex-wrap:wrap;height:28px;width:100%;text-align:left;
+.tlrow{display:flex;align-items:center;flex-wrap:wrap;height:26px;width:100%;text-align:left;
   border-bottom:1px solid var(--hair2)}
 .tlrow.hasnote{height:auto;padding-top:3px}
 .tlrow:last-child{border-bottom:0}
@@ -209,7 +209,7 @@ header.top{padding:calc(8px + env(safe-area-inset-top)) 14px 8px;max-width:520px
 nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22,28,.94);
   backdrop-filter:blur(14px);border-top:1px solid var(--hair);padding-bottom:env(safe-area-inset-bottom)}
 .tabs .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
-.tabs button{min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+.tabs button{min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   font-family:var(--semi);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer)}
 .tabs button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6}
 .tabs button[aria-current=page]{color:var(--molten)}
@@ -234,7 +234,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="eyebrow">Time at work</div>
     <div class="brand">Hour<span>s</span></div>
   </div>
-  <div class="ver">v3.3<br><span id="storeState"></span></div>
+  <div class="ver">v3.4<br><span id="storeState"></span></div>
 </header>
 
 <!-- ══════════ TODAY ══════════ -->
@@ -247,7 +247,8 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div class="bar"><i id="progBar" style="width:0%"></i></div>
     <button class="punch go" id="punchBtn">Clock in</button>
     <div class="btnrow" id="btnRow"></div>
-    <input class="noteline" id="todayNote" placeholder="Note for today — optional">
+    <button id="todayNote" style="width:100%;text-align:left;padding:6px 2px 0;font-size:12.5px;
+      color:var(--dimmer);font-style:italic"></button>
   </div>
 
   <div class="card">
@@ -287,15 +288,16 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <div id="leaveTally"></div>
   </div>
   <div class="card">
-    <div class="card-lbl">Your own copy</div>
-    <p class="mut" style="margin:0 0 12px">All of this lives on this phone only. Export now and then so a lost phone doesn't take the record with it.</p>
+    <div class="card-lbl"><span>Your own copy</span><span class="mut" style="font-size:10px">Export now and then</span></div>
     <div class="split">
       <button class="btn" id="expCsv">Export CSV</button>
       <button class="btn" id="expJson">Backup</button>
     </div>
-    <button class="btn wide" id="impJson" style="margin-top:8px">Restore a backup</button>
+    <div class="split" style="margin-top:7px">
+      <button class="btn" id="impJson">Restore</button>
+      <button class="btn" id="showLog">Change log</button>
+    </div>
     <input type="file" id="fileIn" accept=".json,application/json" hidden>
-    <button class="btn wide" id="showLog" style="margin-top:8px">Change log</button>
   </div>
 </section>
 
@@ -355,7 +357,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(20,22
     <button class="btn wide" id="showRules">The rules behind the checks</button>
     <button class="btn bad wide" id="wipe" style="margin-top:8px">Erase everything</button>
   </div>
-  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v3.3 · works offline</p>
+  <p class="mut" style="text-align:center;padding:2px 0 20px">Hours v3.4 · works offline</p>
 </section>
 
 <nav class="tabs"><div class="in">
@@ -1027,6 +1029,25 @@ function openPlan(ks){
         else S.plan[k]=draft[k]});
       logEdit("Week of "+ks[0]+" planned");save();closeSheet();render()};};
   paint();}
+
+/* notes live in a sheet now — the inline field cost 54px of the first screen
+   every day for something used occasionally */
+function noteSheet(k){
+  sheet(`<h2>Note</h2>
+    <div class="sh-sub">${fromKey(k).toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}
+      · shows on the timeline under that day</div>
+    <input class="noteline" id="nsT" placeholder="What the day was" value="${esc(S.notes[k]||"")}">
+    <button class="btn go wide" id="nsGo" style="min-height:52px;margin-top:10px">Save</button>
+    ${S.notes[k]?`<button class="btn wide" id="nsDel" style="margin-top:8px">Clear it</button>`:""}
+    <button class="btn wide" id="nsX" style="margin-top:8px">Cancel</button>`);
+  const inp=document.getElementById("nsT");
+  setTimeout(()=>inp.focus(),120);
+  const commit=v=>{S.notes[k]=v;save();closeSheet();render()};
+  document.getElementById("nsGo").onclick=()=>commit(inp.value.trim());
+  inp.onkeydown=e=>{if(e.key==="Enter")commit(inp.value.trim())};
+  const d=document.getElementById("nsDel");
+  if(d)d.onclick=()=>commit("");
+  document.getElementById("nsX").onclick=closeSheet;}
 
 /* mark leave — a whole day, a run of days, or the part of today you missed */
 function leaveSheet(k0){
